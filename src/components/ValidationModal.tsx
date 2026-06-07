@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { X, ShieldCheck, Star } from "lucide-react";
 import { BEHAVIORAL_BADGES, MAX_BADGES } from "@/lib/trust";
+import { MAX_TESTIMONIAL_LENGTH } from "@/lib/testimonials";
 import { fetchJson } from "@/lib/fetch-json";
 
 interface ValidationModalProps {
@@ -18,10 +20,13 @@ export default function ValidationModal({
   onClose,
   onSuccess,
 }: ValidationModalProps) {
+  const router = useRouter();
   const [step, setStep] = useState(1);
   const [secretQuestion, setSecretQuestion] = useState("");
   const [secretAnswer, setSecretAnswer] = useState("");
   const [selectedBadges, setSelectedBadges] = useState<string[]>([]);
+  const [comment, setComment] = useState("");
+  const [rating, setRating] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -46,39 +51,61 @@ export default function ValidationModal({
     );
   }
 
-  async function submit(hasMet: boolean) {
+  async function submitMetFlow() {
     setLoading(true);
     setError("");
+
     const { data, error: err } = await fetchJson<{
       secretCorrect?: boolean;
       bothVerified?: boolean;
-      trustAwarded?: number;
+      redirect?: string;
+      message?: string;
     }>("/api/encounters/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         partnerId,
-        hasMet,
-        secretAnswer: hasMet ? secretAnswer : "",
-        badges: hasMet ? selectedBadges : [],
+        metStatus: "MET",
+        secretAnswer,
+        badges: selectedBadges,
+        comment: comment.trim() || undefined,
+        rating: rating || undefined,
       }),
     });
 
+    setLoading(false);
+
     if (err) {
       setError(err);
-      setLoading(false);
-      return;
-    }
-
-    if (hasMet && data && !data.secretCorrect) {
-      setError("Réponse secrète incorrecte — la rencontre n'a pas pu être vérifiée.");
-      setLoading(false);
       return;
     }
 
     onSuccess?.();
     onClose();
+    if (data?.message) alert(data.message);
+  }
+
+  async function submitStatus(metStatus: "NOT_YET" | "NOT_MET") {
+    setLoading(true);
+    setError("");
+
+    const { data, error: err } = await fetchJson<{ redirect?: string }>("/api/encounters/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ partnerId, metStatus }),
+    });
+
     setLoading(false);
+
+    if (err) {
+      setError(err);
+      return;
+    }
+
+    onClose();
+    if (metStatus === "NOT_MET" || data?.redirect) {
+      router.push(data?.redirect ?? "/decouvrir");
+    }
   }
 
   return (
@@ -98,28 +125,36 @@ export default function ValidationModal({
 
         <div className="space-y-4 p-6">
           <p className="text-sm text-warm-muted">
-            Preuve de rencontre réelle — inspiré du système de confiance Sentimental, perfectionné pour AfricanConnect.
+            Les avis sont anonymisés, modérés avant publication, et publiés 48 h après confirmation mutuelle.
+            N&apos;incluez pas d&apos;adresse précise ni de coordonnées.
           </p>
 
           {error && <p className="rounded-xl bg-rose/10 px-4 py-2 text-sm text-rose">{error}</p>}
 
           {step === 1 && (
             <div>
-              <h3 className="font-semibold text-warm">Étape 1 — Avez-vous rencontré cette personne ?</h3>
-              <div className="mt-4 flex gap-3">
+              <h3 className="font-semibold text-warm">Avez-vous rencontré cette personne ?</h3>
+              <div className="mt-4 flex flex-col gap-2">
                 <button
                   onClick={() => setStep(2)}
                   disabled={!secretQuestion}
-                  className="flex-1 rounded-full gradient-pulse py-3 font-medium text-white disabled:opacity-50"
+                  className="rounded-full gradient-pulse py-3 font-medium text-white disabled:opacity-50"
                 >
                   Oui, en vrai
                 </button>
                 <button
-                  onClick={() => submit(false)}
+                  onClick={() => submitStatus("NOT_YET")}
                   disabled={loading}
-                  className="flex-1 rounded-full border border-rose/20 py-3 text-warm hover:bg-cream"
+                  className="rounded-full border border-amber/30 bg-amber/10 py-3 text-warm hover:bg-amber/20"
                 >
-                  Non
+                  Pas encore
+                </button>
+                <button
+                  onClick={() => submitStatus("NOT_MET")}
+                  disabled={loading}
+                  className="rounded-full border border-rose/20 py-3 text-warm-muted hover:bg-cream"
+                >
+                  On ne s&apos;est pas rencontrés
                 </button>
               </div>
             </div>
@@ -127,7 +162,7 @@ export default function ValidationModal({
 
           {step === 2 && (
             <div>
-              <h3 className="font-semibold text-warm">Étape 2 — Question secrète</h3>
+              <h3 className="font-semibold text-warm">Question secrète</h3>
               <p className="mt-2 text-sm text-warm-muted">
                 <strong>Question :</strong> {secretQuestion}
               </p>
@@ -149,8 +184,8 @@ export default function ValidationModal({
 
           {step === 3 && (
             <div>
-              <h3 className="font-semibold text-warm">Étape 3 — Badges comportementaux</h3>
-              <p className="mt-1 text-sm text-warm-muted">Choisissez jusqu&apos;à {MAX_BADGES} badges (+10 pts chacun)</p>
+              <h3 className="font-semibold text-warm">Badges comportementaux</h3>
+              <p className="mt-1 text-sm text-warm-muted">Jusqu&apos;à {MAX_BADGES} badges (+10 pts chacun)</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {BEHAVIORAL_BADGES.map((b) => (
                   <button
@@ -168,11 +203,55 @@ export default function ValidationModal({
                 ))}
               </div>
               <button
-                onClick={() => submit(true)}
-                disabled={loading || selectedBadges.length === 0}
+                onClick={() => selectedBadges.length > 0 && setStep(4)}
+                disabled={selectedBadges.length === 0}
+                className="mt-4 w-full rounded-full bg-warm py-3 font-medium text-cream disabled:opacity-50"
+              >
+                Continuer
+              </button>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div>
+              <h3 className="font-semibold text-warm">Commentaire & note (optionnel)</h3>
+              <p className="mt-1 text-sm text-warm-muted">
+                Style Airbnb — visible après modération, sans votre prénom.
+              </p>
+
+              <div className="mt-3 flex gap-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setRating(n)}
+                    aria-label={`Note ${n}`}
+                    className="p-1"
+                  >
+                    <Star
+                      className={`h-7 w-7 ${n <= rating ? "fill-amber text-amber" : "text-rose/30"}`}
+                    />
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value.slice(0, MAX_TESTIMONIAL_LENGTH))}
+                placeholder="Ex : Personne respectueuse, correspondait bien au profil..."
+                rows={4}
+                className="mt-3 w-full rounded-xl border border-rose/20 px-4 py-3 focus:border-rose focus:outline-none"
+              />
+              <p className="mt-1 text-right text-xs text-warm-muted">
+                {comment.length}/{MAX_TESTIMONIAL_LENGTH}
+              </p>
+
+              <button
+                onClick={submitMetFlow}
+                disabled={loading}
                 className="mt-4 w-full rounded-full gradient-pulse py-3 font-semibold text-white disabled:opacity-50"
               >
-                {loading ? "Validation..." : "Valider la rencontre"}
+                {loading ? "Envoi..." : "Valider la rencontre"}
               </button>
             </div>
           )}

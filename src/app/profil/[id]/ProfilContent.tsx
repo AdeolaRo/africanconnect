@@ -40,7 +40,8 @@ export default function ProfilContent() {
   const [nav, setNav] = useState<{ index: number; total: number; ids: string[] } | null>(null);
   const [interestSent, setInterestSent] = useState(false);
   const [interestLoading, setInterestLoading] = useState(false);
-  const [testimonials, setTestimonials] = useState<{ authorName: string; content: string }[]>([]);
+  const [testimonials, setTestimonials] = useState<{ authorName: string; content: string; rating?: number | null }[]>([]);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
   const [earnedBadges, setEarnedBadges] = useState<{ name: string; count: number }[]>([]);
   const [showValidation, setShowValidation] = useState(false);
 
@@ -95,12 +96,15 @@ export default function ProfilContent() {
 
   useEffect(() => {
     if (!session || !userId) return;
-    fetchJson<{ testimonials: { authorName: string; content: string }[]; badges: { name: string; count: number }[] }>(
-      `/api/testimonials/${userId}`
-    ).then(({ data }) => {
+    fetchJson<{
+      testimonials: { authorName: string; content: string; rating?: number | null }[];
+      badges: { name: string; count: number }[];
+      avgRating: number | null;
+    }>(`/api/testimonials/${userId}`).then(({ data }) => {
       if (data) {
         setTestimonials(data.testimonials);
         setEarnedBadges(data.badges);
+        setAvgRating(data.avgRating);
       }
     });
   }, [session, userId]);
@@ -236,6 +240,7 @@ export default function ProfilContent() {
           photoRevealed={data.photoRevealed}
           testimonials={testimonials}
           earnedBadges={earnedBadges}
+          avgRating={avgRating}
         />
       </main>
       {showValidation && (

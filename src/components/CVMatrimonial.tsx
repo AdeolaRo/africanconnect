@@ -39,8 +39,9 @@ interface CVProps {
   score?: number;
   photoRevealed?: boolean;
   isOwnProfile?: boolean;
-  testimonials?: { authorName: string; content: string }[];
+  testimonials?: { authorName: string; content: string; rating?: number | null }[];
   earnedBadges?: { name: string; count: number }[];
+  avgRating?: number | null;
 }
 
 function parseQualities(raw: string | null | undefined): string[] {
@@ -71,6 +72,7 @@ export default function CVMatrimonial({
   isOwnProfile = false,
   testimonials = [],
   earnedBadges = [],
+  avgRating = null,
 }: CVProps) {
   const qualities = parseQualities(profile.qualities);
   const interests = parseInterests(profile.interests);
@@ -222,12 +224,22 @@ export default function CVMatrimonial({
 
       {testimonials.length > 0 && (
         <div className="border-t border-rose/10 bg-cream/30 px-8 py-5">
-          <h2 className="mb-3 font-serif text-lg font-bold text-warm">Témoignages</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-serif text-lg font-bold text-warm">Témoignages</h2>
+            {avgRating != null && (
+              <span className="rounded-full bg-amber/15 px-3 py-1 text-sm font-medium text-amber">
+                ★ {avgRating}/5
+              </span>
+            )}
+          </div>
           <ul className="space-y-3">
             {testimonials.map((t, i) => (
               <li key={i} className="rounded-xl border border-rose/10 bg-white px-4 py-3 text-sm">
                 <p className="text-warm-muted italic">&ldquo;{t.content}&rdquo;</p>
-                <p className="mt-1 text-xs text-warm-muted">— {t.authorName}</p>
+                <p className="mt-1 text-xs text-warm-muted">
+                  — {t.authorName}
+                  {t.rating ? ` · ★ ${t.rating}/5` : ""}
+                </p>
               </li>
             ))}
           </ul>

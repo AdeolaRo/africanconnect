@@ -92,7 +92,7 @@ export function computeCompatibility(viewer: ProfileData, candidate: ProfileData
   const essentialScore = essential.length ? (essentialMatches / essential.length) * 60 : 30;
   const bonusScore = details.length ? (allMatches / details.length) * 25 : 12;
   const interestBonus = myInterests.length > 0 && theirInterests.length > 0 ? ratio * 10 : 0;
-  const trustBonus = Math.min(5, Math.floor((candidate.trustScore ?? 0) / 20));
+  const trustBonus = Math.min(15, Math.floor((candidate.trustScore ?? 0) / 10));
 
   return {
     score: Math.min(100, Math.round(essentialScore + bonusScore + interestBonus + trustBonus)),
