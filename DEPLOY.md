@@ -79,6 +79,8 @@ Sur le VPS, créer le fichier `.env` :
 DATABASE_URL="postgresql://africanconnect:VOTRE_MOT_DE_PASSE_FORT@localhost:5432/africanconnect"
 AUTH_SECRET="GENEREZ_UN_SECRET_ALEATOIRE_32_CARACTERES_MINIMUM"
 NEXTAUTH_URL="https://africanconnect.online"
+AUTH_TRUST_HOST=true
+PORT=3001
 ```
 
 Modifier `prisma/schema.prisma` pour la production :
@@ -94,13 +96,15 @@ Puis :
 
 ```bash
 npm install
-npx prisma migrate deploy
-npx prisma db seed
+npx prisma db push
+npm run db:seed
 npm run build
-pm2 start npm --name "africanconnect" -- start
+PORT=3001 pm2 start npm --name "africanconnect-online" -- start
 pm2 save
 pm2 startup
 ```
+
+> **Note :** les migrations Prisma du dépôt sont en SQLite (dev). En production PostgreSQL, utilisez `prisma db push` pour créer le schéma, pas `migrate deploy`.
 
 ---
 
@@ -146,12 +150,39 @@ firewall-cmd --reload
 
 ---
 
+## Mises à jour futures (script)
+
+Après un `git push` sur GitHub, sur le VPS :
+
+```bash
+cd /var/www/africanconnect-online
+git pull origin main          # récupère le script si première fois
+chmod +x scripts/deploy-update.sh
+bash scripts/deploy-update.sh
+```
+
+Avec réinjection des données démo (seed) :
+
+```bash
+bash scripts/deploy-update.sh --seed
+```
+
+Le script enchaîne : `git pull` → `npm install` → `prisma db push` → `npm run build` → `pm2 restart africanconnect-online`.
+
+Variables optionnelles :
+
+```bash
+APP_DIR=/var/www/africanconnect-online PM2_NAME=africanconnect-online bash scripts/deploy-update.sh
+```
+
+---
+
 ## Commandes utiles
 
 ```bash
-pm2 logs africanconnect      # Voir les logs
-pm2 restart africanconnect   # Redémarrer
-pm2 status                   # État des apps
+pm2 logs africanconnect-online   # Voir les logs
+pm2 restart africanconnect-online
+pm2 status
 ```
 
 ---
