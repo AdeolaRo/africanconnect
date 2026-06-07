@@ -3,6 +3,7 @@ import { Geist, Playfair_Display } from "next/font/google";
 import Providers from "@/components/Providers";
 import AppBackground from "@/components/AppBackground";
 import SiteFooter from "@/components/SiteFooter";
+import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, SITE_NAME, absoluteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,10 +18,32 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "AfricanConnect — Rencontres sérieuses & sincères",
-  description:
-    "Créez votre profil de rencontre en 5 minutes. Découvrez votre compatibilité avant d'envoyer un message. 100% gratuit.",
-  metadataBase: new URL("https://africanconnect.online"),
+  metadataBase: new URL(absoluteUrl("")),
+  title: {
+    default: `${SITE_NAME} — Rencontres sérieuses & sincères`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  keywords: DEFAULT_KEYWORDS,
+  authors: [{ name: SITE_NAME, url: absoluteUrl("") }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  category: "Rencontres",
+  alternates: {
+    canonical: absoluteUrl(""),
+    languages: { "fr-FR": absoluteUrl("") },
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -29,18 +52,38 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
-    title: "AfricanConnect — Rencontres sérieuses & sincères",
-    description: "Profil d'abord, photo après le match. 100% gratuit.",
-    siteName: "AfricanConnect",
+    title: `${SITE_NAME} — Rencontres sérieuses & sincères`,
+    description: DEFAULT_DESCRIPTION,
+    url: absoluteUrl(""),
+    siteName: SITE_NAME,
     locale: "fr_FR",
     type: "website",
+    images: [
+      {
+        url: absoluteUrl("/images/hero.jpg"),
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} — Rencontres sérieuses`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — Rencontres sérieuses`,
+    description: DEFAULT_DESCRIPTION,
+    images: [absoluteUrl("/images/hero.jpg")],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AfricanConnect",
+    title: SITE_NAME,
   },
-  applicationName: "AfricanConnect",
+  applicationName: SITE_NAME,
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
 };
 
 export const viewport: Viewport = {

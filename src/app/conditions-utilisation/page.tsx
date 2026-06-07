@@ -1,6 +1,15 @@
 import Header from "@/components/Header";
 import { getTermsDocument } from "@/lib/site-documents";
+import { pageMetadata } from "@/lib/seo";
 import { FileText } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Conditions d'utilisation",
+  description:
+    "Conditions générales d'utilisation d'AfricanConnect : règles de la communauté, protection des données et usage du service de rencontre.",
+  path: "/conditions-utilisation",
+});
 
 export default async function ConditionsPage() {
   const doc = await getTermsDocument();

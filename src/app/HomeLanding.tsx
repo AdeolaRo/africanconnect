@@ -5,17 +5,19 @@ import BrandBadge from "@/components/BrandBadge";
 import FeatureCard from "@/components/FeatureCard";
 import StepIndicator from "@/components/StepIndicator";
 import HomePreviewProfiles from "@/components/HomePreviewProfiles";
+import JsonLd from "@/components/JsonLd";
 import { Shield, Sparkles, Users, ArrowRight } from "lucide-react";
 import { images } from "@/lib/images";
 
 export default function HomeLanding() {
   return (
     <>
+      <JsonLd />
       <Header />
       <main>
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
-            <Image src={images.hero} alt="Couple heureux" fill className="object-cover" priority sizes="100vw" />
+            <Image src={images.hero} alt="Couple heureux sur AfricanConnect, site de rencontres sérieuses" fill className="object-cover" priority sizes="100vw" />
             <div className="absolute inset-0 bg-gradient-to-r from-plum/90 via-wine/80 to-rose/60" />
           </div>
 

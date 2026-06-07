@@ -1,6 +1,14 @@
 import Link from "next/link";
 import Header from "@/components/Header";
+import { pageMetadata } from "@/lib/seo";
 import { Map } from "lucide-react";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = pageMetadata({
+  title: "Plan du site",
+  description: "Plan du site AfricanConnect : accès à toutes les pages publiques, inscription, connexion et informations légales.",
+  path: "/plan-du-site",
+});
 
 const publicLinks = [
   { href: "/", label: "Accueil" },
