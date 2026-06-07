@@ -31,14 +31,6 @@ npm run dev
 
 Ouvrir [http://localhost:3000](http://localhost:3000).
 
-### Comptes de test
-
-| Rôle | Email | Mot de passe |
-|------|-------|--------------|
-| Démo | `amina@demo.com` | `demo1234` |
-| Admin | `char.wilsons@gmail.com` | `Ade0la` |
-| Modérateur | `enguequeen@gmail.com` | `enguequeen` |
-
 ## Déploiement
 
 Voir [DEPLOY.md](./DEPLOY.md) pour le VPS IONOS (africanconnect.online).
