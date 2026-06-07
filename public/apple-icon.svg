@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" role="img" aria-label="AfricanConnect">
+  <defs>
+    <linearGradient id="ac-grad-lg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6b1d5c"/>
+      <stop offset="50%" stop-color="#e8195a"/>
+      <stop offset="100%" stop-color="#ff8c42"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="40" fill="url(#ac-grad-lg)"/>
+  <path
+    d="M90 132s-36.5-27-36.5-51.8c0-12.4 10.1-21.4 22.5-21.4 7.9 0 14.6 3.9 18.5 9.6 3.9-5.7 10.6-9.6 18.5-9.6 12.4 0 22.5 9 22.5 21.4 0 24.8-36.5 51.8-36.5 51.8z"
+    fill="#ffffff"
+  />
+  <circle cx="140" cy="140" r="30" fill="#2d1b2e" stroke="#fff5f7" stroke-width="3"/>
+  <text x="140" y="151" text-anchor="middle" fill="#fff5f7" font-family="system-ui,sans-serif" font-size="28" font-weight="700">AC</text>
+</svg>
