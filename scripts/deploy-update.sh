@@ -80,4 +80,12 @@ pm2 save
 
 log "Terminé ✓"
 log "Vérification: curl -I https://africanconnect.online"
-curl -fsI https://africanconnect.online | head -n 1 || log "Attention: curl HTTPS a échoué (DNS/nginx?)"
+for i in 1 2 3 4 5; do
+  if curl -fsI https://africanconnect.online | head -n 1 | grep -q "200\|301\|302"; then
+    curl -fsI https://africanconnect.online | head -n 1
+    exit 0
+  fi
+  log "Attente démarrage Next.js (${i}/5)…"
+  sleep 3
+done
+log "Attention: le site ne répond pas encore en HTTPS (502?). Vérifiez: pm2 logs $PM2_NAME"
