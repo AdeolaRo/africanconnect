@@ -43,7 +43,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ userId:
       return NextResponse.json({ error: "Complétez votre profil d'abord" }, { status: 400 });
     }
 
-    if (!theirUser?.profile || isStaff(theirUser.role)) {
+    if (!theirUser?.profile || isStaff(theirUser.role) || !theirUser.isActive) {
+      return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
+    }
+
+    const isOwn = userId === session.user.id;
+    const p = theirUser.profile;
+    if (!isOwn && !photoRevealed && (!p.completed || !p.discoverVisible)) {
       return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
     }
 
@@ -59,8 +65,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ userId:
       });
       photoUrl = theirPhotos[0]?.url ?? theirUser.profile.photoUrl;
     }
-
-    const p = theirUser.profile;
 
     return NextResponse.json({
       user: { id: theirUser.id, firstName: theirUser.firstName },

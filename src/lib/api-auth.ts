@@ -1,9 +1,18 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { ROLES, type UserRole, isAdmin, isModerator } from "@/lib/roles";
 
+/** Session valide + compte toujours actif en base */
 export async function requireAuth() {
   const session = await auth();
   if (!session?.user?.id) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isActive: true },
+  });
+  if (!user?.isActive) return null;
+
   return session;
 }
 

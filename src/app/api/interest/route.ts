@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/api-auth";
 import { prisma } from "@/lib/prisma";
+import { isStaff } from "@/lib/roles";
 
 export async function GET() {
   try {
-    const session = await auth();
+    const session = await requireAuth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
@@ -87,7 +88,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
+    const session = await requireAuth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
     }
@@ -95,6 +96,23 @@ export async function POST(req: Request) {
     const { toUserId } = await req.json();
     if (!toUserId) {
       return NextResponse.json({ error: "Destinataire requis" }, { status: 400 });
+    }
+
+    if (toUserId === session.user.id) {
+      return NextResponse.json({ error: "Action impossible" }, { status: 400 });
+    }
+
+    const target = await prisma.user.findUnique({
+      where: { id: toUserId },
+      include: { profile: true },
+    });
+    if (
+      !target?.profile?.completed ||
+      !target.isActive ||
+      !target.profile.discoverVisible ||
+      isStaff(target.role)
+    ) {
+      return NextResponse.json({ error: "Profil introuvable" }, { status: 404 });
     }
 
     const existing = await prisma.interest.findUnique({
