@@ -4,6 +4,8 @@ import { useEffect, useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
+import ChatMessageBubble from "@/components/ChatMessageBubble";
+import MessageComposer from "@/components/MessageComposer";
 import { formatBadgeCount } from "@/components/NotificationBadge";
 import { useMessageUnreadCount } from "@/hooks/useMessageUnreadCount";
 import { notifyMessagesRead } from "@/lib/message-notifications";
@@ -14,6 +16,8 @@ interface Message {
   content: string;
   fromUserId: string;
   createdAt: string;
+  deleted?: boolean;
+  edited?: boolean;
   fromUser: { firstName: string };
 }
 
@@ -37,6 +41,8 @@ interface StaffMessage {
   content: string;
   fromUserId: string;
   createdAt: string;
+  deleted?: boolean;
+  edited?: boolean;
   fromUser: { firstName: string; role: string };
 }
 
@@ -58,6 +64,7 @@ function MessagesContent() {
   const [matchesUnread, setMatchesUnread] = useState(0);
   const { refresh: refreshUnreadCounts } = useMessageUnreadCount();
   const [newMessage, setNewMessage] = useState("");
+  const [sending, setSending] = useState(false);
   const [activeUser, setActiveUser] = useState<{ id: string; name: string } | null>(null);
   const [activeStaff, setActiveStaff] = useState<{ id: string; name: string } | null>(null);
 
@@ -135,6 +142,7 @@ function MessagesContent() {
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
     if (!newMessage.trim()) return;
+    setSending(true);
 
     if (tab === "equipe" && activeStaff) {
       const res = await fetch("/api/staff-messages/inbox", {
@@ -146,10 +154,14 @@ function MessagesContent() {
         setNewMessage("");
         loadStaffMessages(activeStaff.id, activeStaff.name);
       }
+      setSending(false);
       return;
     }
 
-    if (!activeUser) return;
+    if (!activeUser) {
+      setSending(false);
+      return;
+    }
     const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -159,6 +171,7 @@ function MessagesContent() {
       setNewMessage("");
       loadMessages(activeUser.id);
     }
+    setSending(false);
   }
 
   const showChat = tab === "matchs" ? activeUser : activeStaff;
@@ -297,47 +310,43 @@ function MessagesContent() {
             <div className="flex-1 space-y-3 overflow-y-auto p-4 md:p-6" style={{ minHeight: 200 }}>
               {tab === "matchs" &&
                 messages.map((m) => (
-                  <div
+                  <ChatMessageBubble
                     key={m.id}
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                      m.fromUserId === session?.user?.id
-                        ? "ml-auto gradient-pulse text-white"
-                        : "bg-cream text-warm"
-                    }`}
-                  >
-                    {m.content}
-                  </div>
+                    message={m}
+                    isMe={m.fromUserId === session?.user?.id}
+                    myUserId={session?.user?.id}
+                    apiBase="/api/messages"
+                    variant="match"
+                    onUpdated={() => activeUser && loadMessages(activeUser.id)}
+                  />
                 ))}
               {tab === "equipe" &&
                 staffMessages.map((m) => (
-                  <div
+                  <ChatMessageBubble
                     key={m.id}
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                      m.fromUserId === session?.user?.id
-                        ? "ml-auto bg-warm text-cream"
-                        : "border border-plum/20 bg-plum/5 text-warm"
-                    }`}
-                  >
-                    {m.fromUserId !== session?.user?.id && (
-                      <p className="mb-1 flex items-center gap-1 text-xs text-plum">
-                        <Shield className="h-3 w-3" /> Équipe AfricanConnect
-                      </p>
-                    )}
-                    {m.content}
-                  </div>
+                    message={m}
+                    isMe={m.fromUserId === session?.user?.id}
+                    myUserId={session?.user?.id}
+                    apiBase="/api/staff-messages"
+                    variant="equipe"
+                    onUpdated={() => activeStaff && loadStaffMessages(activeStaff.id, activeStaff.name)}
+                    headerExtra={
+                      m.fromUserId !== session?.user?.id ? (
+                        <span className="flex items-center gap-1">
+                          <Shield className="h-3 w-3" /> Équipe AfricanConnect
+                        </span>
+                      ) : undefined
+                    }
+                  />
                 ))}
             </div>
-            <form onSubmit={sendMessage} className="flex gap-2 border-t border-rose/10 p-3 md:p-4">
-              <input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Votre message..."
-                className="min-w-0 flex-1 rounded-xl border border-rose/20 px-3 py-2.5 text-base focus:border-rose focus:outline-none md:px-4"
-              />
-              <button type="submit" className="shrink-0 rounded-full gradient-pulse px-4 py-2.5 text-sm font-medium text-white md:px-5">
-                Envoyer
-              </button>
-            </form>
+            <MessageComposer
+              value={newMessage}
+              onChange={setNewMessage}
+              onSubmit={sendMessage}
+              sending={sending}
+              placeholder="Votre message..."
+            />
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-warm-muted md:p-10">

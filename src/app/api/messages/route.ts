@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { moderateText, moderationErrorResponse } from "@/lib/content-moderation";
+import { getPublicMessageContent, serializeMessageForClient } from "@/lib/message-utils";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
 
     const unreadBySender = await prisma.message.groupBy({
       by: ["fromUserId"],
-      where: { toUserId: session.user.id, read: false },
+      where: { toUserId: session.user.id, read: false, deletedAt: null },
       _count: { id: true },
     });
     const unreadMap = new Map(unreadBySender.map((u) => [u.fromUserId, u._count.id]));
@@ -71,11 +72,16 @@ export async function GET(req: Request) {
   });
 
   await prisma.message.updateMany({
-    where: { fromUserId: withUserId, toUserId: session.user.id, read: false },
+    where: { fromUserId: withUserId, toUserId: session.user.id, read: false, deletedAt: null },
     data: { read: true },
   });
 
-  return NextResponse.json(messages);
+  return NextResponse.json(
+    messages.map((m) => ({
+      ...m,
+      ...serializeMessageForClient(m),
+    }))
+  );
 }
 
 export async function POST(req: Request) {

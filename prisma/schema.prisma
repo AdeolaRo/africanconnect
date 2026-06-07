@@ -154,12 +154,15 @@ model Interest {
 }
 
 model Message {
-  id         String   @id @default(cuid())
-  fromUserId String
-  toUserId   String
-  content    String
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id              String    @id @default(cuid())
+  fromUserId      String
+  toUserId        String
+  content         String
+  originalContent String?
+  read            Boolean   @default(false)
+  deletedAt       DateTime?
+  editedAt        DateTime?
+  createdAt       DateTime  @default(now())
 
   fromUser User @relation("SentMessages", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUser   User @relation("ReceivedMessages", fields: [toUserId], references: [id], onDelete: Cascade)
@@ -261,12 +264,15 @@ model SiteDocument {
 }
 
 model StaffMessage {
-  id         String   @id @default(cuid())
-  fromUserId String
-  toUserId   String
-  content    String
-  read       Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id              String    @id @default(cuid())
+  fromUserId      String
+  toUserId        String
+  content         String
+  originalContent String?
+  read            Boolean   @default(false)
+  deletedAt       DateTime?
+  editedAt        DateTime?
+  createdAt       DateTime  @default(now())
 
   fromUser User @relation("StaffMessagesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
   toUser   User @relation("StaffMessagesReceived", fields: [toUserId], references: [id], onDelete: Cascade)

@@ -8,6 +8,8 @@ import BrandBadge from "@/components/BrandBadge";
 import StaffPageNav from "@/components/StaffPageNav";
 import { fetchJson } from "@/lib/fetch-json";
 import { notifyMessagesRead } from "@/lib/message-notifications";
+import ChatMessageBubble from "@/components/ChatMessageBubble";
+import MessageComposer from "@/components/MessageComposer";
 import { isModerator, isStaff, ROLES } from "@/lib/roles";
 import { Mail, Search, Send, Shield, MessageSquare, Users, Calendar, ArrowLeft } from "lucide-react";
 
@@ -46,6 +48,8 @@ interface StaffMsg {
   fromUserId: string;
   toUserId: string;
   createdAt: string;
+  deleted?: boolean;
+  edited?: boolean;
   fromUser: { id: string; firstName: string; role: string };
 }
 
@@ -335,63 +339,38 @@ export default function StaffMessageriePage() {
                         <span className="text-sm">Démarrez la conversation avec {activeUser.firstName}</span>
                       </p>
                     ) : (
-                      messages.map((m) => {
-                        const isMe = m.fromUserId === session?.user?.id;
-                        return (
-                          <div
-                            key={m.id}
-                            className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                          >
-                            <div
-                              className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
-                                isMe
-                                  ? "bg-gradient-to-r from-plum to-rose text-white"
-                                  : "border border-rose/10 bg-white text-warm"
-                              }`}
-                            >
-                              {!isMe && (
-                                <p className="mb-1.5 flex items-center gap-1 text-xs font-medium opacity-80">
-                                  {isStaff(m.fromUser.role) ? (
-                                    <Shield className="h-3 w-3" />
-                                  ) : null}
-                                  {m.fromUser.firstName}
-                                  {isStaff(m.fromUser.role) && (
-                                    <span className="opacity-70">· {roleLabel(m.fromUser.role)}</span>
-                                  )}
-                                </p>
-                              )}
-                              <p>{m.content}</p>
-                              <p className={`mt-1.5 text-[10px] ${isMe ? "text-white/70" : "text-warm-muted"}`}>
-                                {new Date(m.createdAt).toLocaleString("fr-FR", {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })
+                      messages.map((m) => (
+                        <ChatMessageBubble
+                          key={m.id}
+                          message={m}
+                          isMe={m.fromUserId === session?.user?.id}
+                          myUserId={session?.user?.id}
+                          apiBase="/api/staff-messages"
+                          variant="staff"
+                          onUpdated={() => activeUser && openThread(activeUser)}
+                          headerExtra={
+                            m.fromUserId !== session?.user?.id ? (
+                              <span className="flex items-center gap-1">
+                                {isStaff(m.fromUser.role) && <Shield className="h-3 w-3" />}
+                                {m.fromUser.firstName}
+                                {isStaff(m.fromUser.role) && (
+                                  <span className="opacity-70">· {roleLabel(m.fromUser.role)}</span>
+                                )}
+                              </span>
+                            ) : undefined
+                          }
+                        />
+                      ))
                     )}
                   </div>
 
-                  <form onSubmit={sendMessage} className="flex gap-2 border-t border-rose/10 bg-white px-3 py-3 md:gap-3 md:px-6 md:py-4">
-                    <input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder={`Écrire à ${activeUser.firstName}…`}
-                      className="min-w-0 flex-1 rounded-xl border border-rose/20 px-3 py-2.5 text-base focus:border-rose focus:outline-none focus:ring-2 focus:ring-rose/15 md:px-4 md:py-3 md:text-sm"
-                    />
-                    <button
-                      type="submit"
-                      disabled={sending || !newMessage.trim()}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full gradient-pulse px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 md:gap-2 md:px-6 md:py-3"
-                    >
-                      <Send className="h-4 w-4" />
-                      <span className="hidden sm:inline">{sending ? "Envoi…" : "Envoyer"}</span>
-                    </button>
-                  </form>
+                  <MessageComposer
+                    value={newMessage}
+                    onChange={setNewMessage}
+                    onSubmit={sendMessage}
+                    sending={sending}
+                    placeholder={`Écrire à ${activeUser.firstName}…`}
+                  />
                 </>
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-cream/20 p-8 text-warm-muted md:p-12">

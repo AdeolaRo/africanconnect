@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isStaff } from "@/lib/roles";
 import { moderateText, moderationErrorResponse } from "@/lib/content-moderation";
+import { getPublicMessageContent, serializeMessageForClient } from "@/lib/message-utils";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -53,11 +54,16 @@ export async function GET(req: Request) {
     });
 
     await prisma.staffMessage.updateMany({
-      where: { fromUserId: withStaffId, toUserId: myId, read: false },
+      where: { fromUserId: withStaffId, toUserId: myId, read: false, deletedAt: null },
       data: { read: true },
     });
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({
+      messages: messages.map((m) => ({
+        ...m,
+        ...serializeMessageForClient(m),
+      })),
+    });
   }
 
   const received = await prisma.staffMessage.findMany({
@@ -81,7 +87,7 @@ export async function GET(req: Request) {
         staffId: sid,
         staffName: m.fromUser.firstName,
         role: m.fromUser.role,
-        lastMessage: m.content,
+        lastMessage: getPublicMessageContent(m.content, m.deletedAt),
         lastAt: m.createdAt.toISOString(),
         unread: m.read ? 0 : 1,
       });
@@ -91,7 +97,7 @@ export async function GET(req: Request) {
   }
 
   const unreadTotal = await prisma.staffMessage.count({
-    where: { toUserId: myId, read: false },
+    where: { toUserId: myId, read: false, deletedAt: null },
   });
 
   return NextResponse.json({

@@ -36,11 +36,12 @@ export default function Header({ user: userProp }: HeaderProps) {
   const user = userProp ?? session?.user;
   const role = user?.role;
   const { counts } = useMessageUnreadCount();
+  const homeHref = user ? "/decouvrir" : "/";
 
   return (
     <header className="sticky top-0 z-50 border-b border-rose/15 bg-cream/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 md:py-4">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href={homeHref} className="flex items-center gap-2">
           <BrandBadge size="sm" showLabel />
         </Link>
         <nav className="flex items-center justify-end gap-2 text-sm text-warm-muted md:gap-3">

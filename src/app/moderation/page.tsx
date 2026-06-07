@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import BrandBadge from "@/components/BrandBadge";
 import StaffPageNav from "@/components/StaffPageNav";
+import ModerationThreadPanel, { ModerationThreadRow, type ModThread } from "@/components/ModerationThreadPanel";
 import { fetchJson } from "@/lib/fetch-json";
 import { isModerator } from "@/lib/roles";
 import {
@@ -43,15 +44,6 @@ interface Testimonial {
   authorName: string;
   targetName: string;
   createdAt: string;
-}
-
-interface ModMessage {
-  id: string;
-  type: "match" | "staff";
-  content: string;
-  createdAt: string;
-  from: { id: string; firstName: string; email: string; role: string };
-  to: { id: string; firstName: string; email: string; role: string };
 }
 
 interface ModProfile {
@@ -118,7 +110,8 @@ export default function ModerationPage() {
   const [filter, setFilter] = useState("PENDING");
   const [reports, setReports] = useState<Report[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [messages, setMessages] = useState<ModMessage[]>([]);
+  const [msgThreads, setMsgThreads] = useState<ModThread[]>([]);
+  const [selectedThread, setSelectedThread] = useState<ModThread | null>(null);
   const [profiles, setProfiles] = useState<ModProfile[]>([]);
   const [profileSearch, setProfileSearch] = useState("");
   const [msgSearch, setMsgSearch] = useState("");
@@ -147,8 +140,8 @@ export default function ModerationPage() {
 
   async function loadMessages() {
     setLoading(true);
-    const { data } = await fetchJson<{ messages: ModMessage[] }>("/api/moderation/content/messages?limit=60");
-    if (data) setMessages(data.messages);
+    const { data } = await fetchJson<{ threads: ModThread[] }>("/api/moderation/content/messages?limit=100");
+    if (data) setMsgThreads(data.threads);
     setLoading(false);
   }
 
@@ -178,12 +171,6 @@ export default function ModerationPage() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileSearch, tab, session]);
-
-  async function deleteMessage(id: string, type: "match" | "staff") {
-    if (!confirm("Supprimer ce message ?")) return;
-    await fetchJson(`/api/moderation/content/messages/${id}?type=${type}`, { method: "DELETE" });
-    loadMessages();
-  }
 
   async function deleteTestimonial(id: string) {
     if (!confirm("Supprimer définitivement ce commentaire ?")) return;
@@ -220,19 +207,21 @@ export default function ModerationPage() {
   }
 
   const tabs: { id: Tab; label: string; icon: typeof MessageSquare; count?: number }[] = [
-    { id: "messages", label: "Messages", icon: MessageSquare, count: messages.length },
+    { id: "messages", label: "Messages", icon: MessageSquare, count: msgThreads.length },
     { id: "commentaires", label: "Commentaires", icon: Star, count: testimonials.length },
     { id: "profils", label: "Profils", icon: User, count: profiles.length },
     { id: "signalements", label: "Signalements", icon: Flag, count: reports.length },
   ];
 
-  const filteredMessages = messages.filter((m) => {
+  const filteredThreads = msgThreads.filter((t) => {
     const q = msgSearch.trim().toLowerCase();
     if (!q) return true;
     return (
-      m.content.toLowerCase().includes(q) ||
-      m.from.firstName.toLowerCase().includes(q) ||
-      m.to.firstName.toLowerCase().includes(q)
+      t.lastMessage.toLowerCase().includes(q) ||
+      t.userA.firstName.toLowerCase().includes(q) ||
+      t.userB.firstName.toLowerCase().includes(q) ||
+      t.userA.email.toLowerCase().includes(q) ||
+      t.userB.email.toLowerCase().includes(q)
     );
   });
 
@@ -327,8 +316,8 @@ export default function ModerationPage() {
 
         {tab === "messages" && (
           <SectionShell
-            title="Messages à modérer"
-            subtitle={`${filteredMessages.length} message${filteredMessages.length > 1 ? "s" : ""} — match et équipe`}
+            title="Conversations à modérer"
+            subtitle={`${filteredThreads.length} conversation${filteredThreads.length > 1 ? "s" : ""} — cliquez pour voir le fil`}
             toolbar={
               <div className="relative w-full max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warm-muted" />
@@ -336,109 +325,29 @@ export default function ModerationPage() {
                   type="search"
                   value={msgSearch}
                   onChange={(e) => setMsgSearch(e.target.value)}
-                  placeholder="Filtrer par contenu ou membre…"
+                  placeholder="Filtrer par membre ou contenu…"
                   className="w-full rounded-xl border border-rose/20 bg-white py-2.5 pl-10 pr-4 text-sm focus:border-rose focus:outline-none focus:ring-2 focus:ring-rose/15"
                 />
               </div>
             }
           >
-            <div className="space-y-3 p-4 md:hidden">
-              {filteredMessages.length === 0 ? (
-                <p className="py-8 text-center text-sm text-warm-muted">Aucun message</p>
+            <div className="divide-y divide-rose/8 p-2 md:p-0">
+              {filteredThreads.length === 0 ? (
+                <p className="px-5 py-12 text-center text-warm-muted">Aucune conversation</p>
               ) : (
-                filteredMessages.map((m) => (
-                  <article key={`${m.type}-${m.id}`} className="mobile-card">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.type === "staff" ? "bg-plum/10 text-plum" : "bg-rose/10 text-rose"}`}>
-                        {m.type === "staff" ? "Équipe" : "Match"}
-                      </span>
-                      <span className="text-[10px] text-warm-muted">
-                        {new Date(m.createdAt).toLocaleDateString("fr-FR")}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm font-semibold text-warm">{m.from.firstName} → {m.to.firstName}</p>
-                    <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-warm-muted">&ldquo;{m.content}&rdquo;</p>
-                    <button
-                      type="button"
-                      onClick={() => deleteMessage(m.id, m.type)}
-                      className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" /> Supprimer
-                    </button>
-                  </article>
+                filteredThreads.map((t) => (
+                  <ModerationThreadRow key={t.threadKey} thread={t} onOpen={setSelectedThread} />
                 ))
               )}
             </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[960px] text-left">
-                <thead>
-                  <tr className="border-b border-rose/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-warm-muted">
-                    <th className="px-6 py-4 sm:px-8">Type</th>
-                    <th className="px-4 py-4">Échange</th>
-                    <th className="px-4 py-4">Message</th>
-                    <th className="px-4 py-4">Date</th>
-                    <th className="px-6 py-4 sm:px-8 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredMessages.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-8 py-12 text-center text-warm-muted">
-                        Aucun message
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredMessages.map((m, i) => (
-                      <tr
-                        key={`${m.type}-${m.id}`}
-                        className={`border-b border-rose/8 hover:bg-rose/5 ${i % 2 === 0 ? "bg-white" : "bg-cream/20"}`}
-                      >
-                        <td className="px-6 py-5 sm:px-8">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
-                              m.type === "staff"
-                                ? "bg-plum/10 text-plum ring-plum/20"
-                                : "bg-rose/10 text-rose ring-rose/20"
-                            }`}
-                          >
-                            {m.type === "staff" ? "Équipe" : "Match"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-5">
-                          <p className="text-sm font-semibold text-warm">{m.from.firstName}</p>
-                          <p className="text-xs text-warm-muted">→ {m.to.firstName}</p>
-                        </td>
-                        <td className="max-w-md px-4 py-5">
-                          <p className="line-clamp-3 text-sm leading-relaxed text-warm">&ldquo;{m.content}&rdquo;</p>
-                        </td>
-                        <td className="px-4 py-5">
-                          <span className="flex items-center gap-1.5 text-sm text-warm-muted">
-                            <Calendar className="h-3.5 w-3.5 shrink-0" />
-                            {new Date(m.createdAt).toLocaleString("fr-FR", {
-                              day: "numeric",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </td>
-                        <td className="px-6 py-5 text-right sm:px-8">
-                          <button
-                            type="button"
-                            onClick={() => deleteMessage(m.id, m.type)}
-                            className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
-                          >
-                            <Trash2 className="h-4 w-4" /> Supprimer
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
           </SectionShell>
         )}
+
+        <ModerationThreadPanel
+          thread={selectedThread}
+          onClose={() => setSelectedThread(null)}
+          onDeleted={loadMessages}
+        />
 
         {tab === "commentaires" && (
           <SectionShell

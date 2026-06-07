@@ -13,7 +13,7 @@ export async function GET() {
   const staff = isStaff(session.user.role);
 
   const staffUnread = await prisma.staffMessage.count({
-    where: { toUserId: myId, read: false },
+    where: { toUserId: myId, read: false, deletedAt: null },
   });
 
   if (staff) {
@@ -25,7 +25,7 @@ export async function GET() {
   }
 
   const matchesUnread = await prisma.message.count({
-    where: { toUserId: myId, read: false },
+    where: { toUserId: myId, read: false, deletedAt: null },
   });
 
   return NextResponse.json({

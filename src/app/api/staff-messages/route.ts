@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/api-auth";
 import { moderateText, moderationErrorResponse } from "@/lib/content-moderation";
+import { getPublicMessageContent, serializeMessageForClient } from "@/lib/message-utils";
 
 export async function GET(req: Request) {
   const { error, status, session } = await requireModerator();
@@ -28,11 +29,16 @@ export async function GET(req: Request) {
     });
 
     await prisma.staffMessage.updateMany({
-      where: { fromUserId: withUserId, toUserId: staffId, read: false },
+      where: { fromUserId: withUserId, toUserId: staffId, read: false, deletedAt: null },
       data: { read: true },
     });
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({
+      messages: messages.map((m) => ({
+        ...m,
+        ...serializeMessageForClient(m),
+      })),
+    });
   }
 
   const allMessages = await prisma.staffMessage.findMany({
@@ -72,7 +78,7 @@ export async function GET(req: Request) {
         firstName: partner.firstName,
         email: partner.email,
         role: partner.role,
-        lastMessage: m.content,
+        lastMessage: getPublicMessageContent(m.content, m.deletedAt),
         lastAt: m.createdAt.toISOString(),
         unread: unreadAdd,
       });
