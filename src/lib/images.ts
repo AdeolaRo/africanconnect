@@ -4,5 +4,6 @@ export const images = {
   couple: "/images/couple.jpg",
   friends: "/images/friends.jpg",
   connection: "/images/connection.jpg",
+  community: "/images/community.jpg",
   signup: "/images/signup.jpg",
 };

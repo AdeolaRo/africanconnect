@@ -91,7 +91,13 @@ export default function HomeLanding() {
         <section className="bg-gradient-to-br from-cream via-cream-dark to-rose/5 px-4 py-16">
           <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 md:flex-row">
             <div className="relative h-64 w-full overflow-hidden rounded-3xl shadow-xl md:w-80 shrink-0">
-              <Image src={images.couple} alt="Belle rencontre" fill className="object-cover" sizes="320px" />
+              <Image
+                src={images.community}
+                alt="Communauté diverse et bienveillante sur AfricanConnect"
+                fill
+                className="object-cover"
+                sizes="320px"
+              />
             </div>
             <div>
               <h2 className="font-serif text-2xl font-bold text-warm md:text-3xl">
