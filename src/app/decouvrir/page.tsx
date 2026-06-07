@@ -10,10 +10,12 @@ import DiscoverCard, { type DiscoverProfile } from "@/components/DiscoverCard";
 import StepIndicator from "@/components/StepIndicator";
 import { fetchJson } from "@/lib/fetch-json";
 import { discoverProfileUrl, saveDiscoverNav } from "@/lib/discover-nav";
+import StaffPageNav from "@/components/StaffPageNav";
 import { isStaff, staffHomePath } from "@/lib/roles";
 
 type SortOption = "score" | "age-asc" | "age-desc" | "city";
 type ScoreFilter = "all" | "70" | "85";
+type VerifiedFilter = "all" | "verified";
 
 export default function DecouvrirPage() {
   const { data: session, status } = useSession();
@@ -24,23 +26,26 @@ export default function DecouvrirPage() {
   const [sort, setSort] = useState<SortOption>("score");
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>("all");
   const [cityFilter, setCityFilter] = useState("all");
+  const [verifiedFilter, setVerifiedFilter] = useState<VerifiedFilter>("all");
   const [sentInterests, setSentInterests] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState<string | null>(null);
+  const [staffPreview, setStaffPreview] = useState(false);
+
+  const role = session?.user?.role;
+  const staffMode = isStaff(role);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/connexion");
-    if (status === "authenticated" && isStaff(session?.user?.role)) {
-      const path = staffHomePath(session?.user?.role);
-      if (path) router.push(path);
-    }
-  }, [status, session, router]);
+  }, [status, router]);
 
   useEffect(() => {
     if (!session) return;
 
     async function load() {
+      const discoverUrl =
+        verifiedFilter === "verified" ? "/api/discover?verifiedOnly=true" : "/api/discover";
       const [discoverRes, interestRes] = await Promise.all([
-        fetchJson<{ profiles?: DiscoverProfile[]; myUserId?: string; error?: string }>("/api/discover"),
+        fetchJson<{ profiles?: DiscoverProfile[]; myUserId?: string; error?: string; staffPreview?: boolean }>(discoverUrl),
         fetchJson<{ interests: { partnerId: string }[] }>("/api/interest"),
       ]);
 
@@ -48,6 +53,7 @@ export default function DecouvrirPage() {
         const myId = discoverRes.data.myUserId ?? session?.user?.id;
         const others = discoverRes.data.profiles.filter((p) => p.id !== myId);
         setProfiles(others);
+        setStaffPreview(!!discoverRes.data.staffPreview);
       }
       if (discoverRes.data?.error) setMessage(discoverRes.data.error);
 
@@ -58,7 +64,7 @@ export default function DecouvrirPage() {
     }
 
     load();
-  }, [session]);
+  }, [session, verifiedFilter]);
 
   const cities = useMemo(() => {
     const set = new Set(profiles.map((p) => p.profile.location).filter(Boolean) as string[]);
@@ -135,6 +141,20 @@ export default function DecouvrirPage() {
     <>
       <Header user={session?.user} />
       <main className="mx-auto max-w-6xl px-4 py-10">
+        {staffMode && staffHomePath(role) && (
+          <StaffPageNav
+            backHref={staffHomePath(role)!}
+            backLabel={role === "ADMIN" ? "Retour admin" : "Retour modération"}
+            role={role}
+          />
+        )}
+
+        {staffPreview && (
+          <p className="mb-6 rounded-xl border border-plum/20 bg-plum/5 px-4 py-3 text-center text-sm text-plum">
+            Mode consultation équipe — parcours membre en lecture seule (sans intérêt ni match).
+          </p>
+        )}
+
         <div className="text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-rose/10 px-4 py-1.5 text-sm font-medium text-rose">
             <Sparkles className="h-4 w-4" />
@@ -143,9 +163,6 @@ export default function DecouvrirPage() {
           <h1 className="mt-4 font-serif text-3xl font-bold text-warm md:text-4xl">
             Profils compatibles
           </h1>
-          <p className="mt-2 text-warm-muted">
-            Compatibilité calculée sur vos critères — comme Hinge, mais en mode discret
-          </p>
           <div className="mt-5 flex justify-center">
             <StepIndicator currentStep={1} />
           </div>
@@ -195,6 +212,15 @@ export default function DecouvrirPage() {
                   ))}
                 </select>
               )}
+
+              <select
+                value={verifiedFilter}
+                onChange={(e) => setVerifiedFilter(e.target.value as VerifiedFilter)}
+                className="rounded-full border border-rose/20 bg-cream px-3 py-1.5 text-sm text-warm focus:border-rose focus:outline-none"
+              >
+                <option value="all">Tous les profils</option>
+                <option value="verified">Profils vérifiés uniquement</option>
+              </select>
             </div>
           </div>
         )}
@@ -224,8 +250,9 @@ export default function DecouvrirPage() {
                 featured={i === 0 && sort === "score" && scoreFilter === "all" && cityFilter === "all"}
                 interestSent={sentInterests.has(p.id)}
                 sending={sending === p.id}
-                onInterest={toggleInterest}
-                onPass={passProfile}
+                onInterest={staffPreview ? () => {} : toggleInterest}
+                onPass={staffPreview ? undefined : passProfile}
+                readOnly={staffPreview}
                 discoverIds={discoverIds}
               />
             ))}

@@ -6,8 +6,10 @@ import { getCommonInterests, parseInterests } from "@/lib/interests";
 import { areOrientationsCompatible } from "@/lib/orientation";
 import { isStaff } from "@/lib/roles";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
+  const { searchParams } = new URL(req.url);
+  const verifiedOnly = searchParams.get("verifiedOnly") === "true";
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   }
@@ -23,7 +25,45 @@ export async function GET() {
   });
 
   if (isStaff(me?.role)) {
-    return NextResponse.json({ error: "Les comptes staff n'apparaissent pas dans Découvrir", profiles: [] }, { status: 200 });
+    const candidates = await prisma.user.findMany({
+      where: {
+        role: "USER",
+        isActive: true,
+        profile: {
+          completed: true,
+          discoverVisible: true,
+          ...(verifiedOnly ? { verified: true } : {}),
+        },
+      },
+      include: { profile: true },
+      take: 100,
+      orderBy: { createdAt: "desc" },
+    });
+
+    const profiles = candidates.map((c) => ({
+      id: c.id,
+      firstName: c.firstName,
+      profileTitle: c.profile!.profileTitle,
+      trustScore: c.profile!.trustScore,
+      verified: c.profile!.verified,
+      lookingFor: c.profile!.lookingFor,
+      profile: {
+        age: c.profile!.age,
+        location: c.profile!.location,
+        profession: c.profile!.profession,
+        origin: c.profile!.origin,
+        bio: c.profile!.bio,
+        gender: c.profile!.gender,
+        seekingGender: c.profile!.seekingGender,
+      },
+      matchScore: 0,
+      matchLabel: "Consultation",
+      matchedCriteria: [] as string[],
+      commonInterests: [] as string[],
+      photoRevealed: false,
+    }));
+
+    return NextResponse.json({ profiles, myUserId: me!.id, staffPreview: true });
   }
 
   if (!me?.profile?.completed) {
@@ -40,7 +80,11 @@ export async function GET() {
         id: { not: myId },
         role: "USER",
         isActive: true,
-        profile: { completed: true, discoverVisible: true },
+        profile: {
+          completed: true,
+          discoverVisible: true,
+          ...(verifiedOnly ? { verified: true } : {}),
+        },
       },
       include: { profile: true },
       take: 100,

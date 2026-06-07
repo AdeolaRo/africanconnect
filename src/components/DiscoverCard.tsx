@@ -37,6 +37,7 @@ interface DiscoverCardProps {
   onPass?: (id: string) => void;
   sending?: boolean;
   discoverIds?: string[];
+  readOnly?: boolean;
 }
 
 function scoreRingColor(score: number) {
@@ -53,6 +54,7 @@ export default function DiscoverCard({
   onPass,
   sending,
   discoverIds,
+  readOnly,
 }: DiscoverCardProps) {
   const router = useRouter();
   const { profile } = p;
@@ -105,8 +107,13 @@ export default function DiscoverCard({
               <p className="mt-0.5 text-sm font-medium text-rose">{p.profileTitle}</p>
             )}
             <p className="mt-0.5 text-xs text-warm-muted">{getScoreLabel(p.matchScore)}</p>
-            <div className="mt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <TrustScoreBadge score={p.trustScore ?? 0} verified={p.verified} size="sm" />
+              {p.verified && (
+                <span className="rounded-full border border-plum/25 bg-plum/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-plum">
+                  Vérifié
+                </span>
+              )}
             </div>
             {p.lookingFor && (
               <p className="mt-1 text-xs text-warm-muted">Cherche : {p.lookingFor}</p>
@@ -174,7 +181,7 @@ export default function DiscoverCard({
       </div>
 
       <div className="mt-auto flex gap-2 border-t border-rose/10 bg-cream/30 p-4">
-        {onPass && (
+        {!readOnly && onPass && (
           <button
             onClick={() => onPass(p.id)}
             aria-label="Passer ce profil"
@@ -185,22 +192,24 @@ export default function DiscoverCard({
         )}
         <button
           onClick={viewProfile}
-          className="flex-1 rounded-full border border-rose/20 bg-white px-4 py-2.5 text-center text-sm font-medium text-warm transition-colors hover:border-rose/40 hover:bg-cream"
+          className={`rounded-full border border-rose/20 bg-white px-4 py-2.5 text-center text-sm font-medium text-warm transition-colors hover:border-rose/40 hover:bg-cream ${readOnly ? "w-full" : "flex-1"}`}
         >
           Voir le profil
         </button>
-        <button
-          onClick={() => onInterest(p.id)}
-          disabled={sending}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-60 ${
-            interestSent
-              ? "border border-rose/30 bg-rose/10 text-rose hover:bg-rose/15"
-              : "gradient-pulse text-white shadow-md shadow-rose/20 hover:shadow-lg"
-          }`}
-        >
-          <Heart className="h-4 w-4" fill={interestSent ? "currentColor" : "none"} />
-          {sending ? "..." : interestSent ? "Intérêt exprimé" : "Intérêt"}
-        </button>
+        {!readOnly && (
+          <button
+            onClick={() => onInterest(p.id)}
+            disabled={sending}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-all disabled:opacity-60 ${
+              interestSent
+                ? "border border-rose/30 bg-rose/10 text-rose hover:bg-rose/15"
+                : "gradient-pulse text-white shadow-md shadow-rose/20 hover:shadow-lg"
+            }`}
+          >
+            <Heart className="h-4 w-4" fill={interestSent ? "currentColor" : "none"} />
+            {sending ? "..." : interestSent ? "Intérêt exprimé" : "Intérêt"}
+          </button>
+        )}
       </div>
     </article>
   );

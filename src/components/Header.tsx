@@ -27,12 +27,15 @@ export default function Header({ user: userProp }: HeaderProps) {
               {isAdmin(role) && (
                 <Link href="/admin" className="font-medium text-plum hover:underline">Admin</Link>
               )}
+              <Link href="/decouvrir" className="hover:text-rose transition-colors">Découvrir</Link>
               {isModerator(role) && (
-                <Link href="/moderation" className="font-medium text-amber hover:underline">Modération</Link>
+                <>
+                  <Link href="/moderation" className="font-medium text-amber hover:underline">Modération</Link>
+                  <Link href="/staff-messagerie" className="font-medium text-rose hover:underline">Messagerie</Link>
+                </>
               )}
               {!isStaff(role) && (
                 <>
-                  <Link href="/decouvrir" className="hover:text-rose transition-colors">Découvrir</Link>
                   <Link href="/mon-cv" className="hover:text-rose transition-colors">Mon profil</Link>
                   <Link href="/visites" className="hover:text-rose transition-colors">Visites</Link>
                   <Link href="/messages" className="hover:text-rose transition-colors">Messages</Link>
