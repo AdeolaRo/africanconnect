@@ -14,7 +14,7 @@ export default function HomePreviewProfiles() {
   useEffect(() => {
     fetchJson<{ profiles: PublicProfile[]; total: number }>("/api/preview-profiles").then(({ data }) => {
       if (data) {
-        setProfiles(data.profiles.slice(0, 6));
+        setProfiles(data.profiles.slice(0, 3));
         setTotal(data.total);
       }
       setLoading(false);
