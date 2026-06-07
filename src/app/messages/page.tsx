@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
+import { Shield } from "lucide-react";
 
 interface Message {
   id: string;
@@ -19,16 +20,40 @@ interface Conversation {
   toUser: { id: string; firstName: string };
 }
 
+interface StaffThread {
+  staffId: string;
+  staffName: string;
+  role: string;
+  lastMessage: string;
+  unread: number;
+}
+
+interface StaffMessage {
+  id: string;
+  content: string;
+  fromUserId: string;
+  createdAt: string;
+  fromUser: { firstName: string; role: string };
+}
+
+type Tab = "matchs" | "equipe";
+
 function MessagesContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const withUserId = searchParams.get("with");
+  const tabParam = searchParams.get("tab");
 
+  const [tab, setTab] = useState<Tab>(tabParam === "equipe" ? "equipe" : "matchs");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [staffThreads, setStaffThreads] = useState<StaffThread[]>([]);
+  const [staffMessages, setStaffMessages] = useState<StaffMessage[]>([]);
+  const [staffUnread, setStaffUnread] = useState(0);
   const [newMessage, setNewMessage] = useState("");
   const [activeUser, setActiveUser] = useState<{ id: string; name: string } | null>(null);
+  const [activeStaff, setActiveStaff] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/connexion");
@@ -36,13 +61,19 @@ function MessagesContent() {
 
   useEffect(() => {
     if (session) {
-      fetch("/api/messages").then((r) => r.json()).then(setConversations);
+      fetch("/api/messages").then((r) => r.json()).then((d) => Array.isArray(d) && setConversations(d));
+      fetch("/api/staff-messages/inbox").then((r) => r.json()).then((d) => {
+        if (d.threads) {
+          setStaffThreads(d.threads);
+          setStaffUnread(d.unreadTotal ?? 0);
+        }
+      });
     }
   }, [session]);
 
   useEffect(() => {
-    if (withUserId && session) loadMessages(withUserId);
-  }, [withUserId, session]);
+    if (withUserId && session && tab === "matchs") loadMessages(withUserId);
+  }, [withUserId, session, tab]);
 
   function getPartner(conv: Conversation) {
     const myId = session?.user?.id;
@@ -59,85 +90,192 @@ function MessagesContent() {
         id: userId,
         name: conv ? getPartner(conv).firstName : "Contact",
       });
+      setActiveStaff(null);
+    }
+  }
+
+  async function loadStaffMessages(staffId: string, staffName: string) {
+    const res = await fetch(`/api/staff-messages/inbox?with=${staffId}`);
+    const data = await res.json();
+    if (data.messages) {
+      setStaffMessages(data.messages);
+      setActiveStaff({ id: staffId, name: staffName });
+      setActiveUser(null);
+      fetch("/api/staff-messages/inbox").then((r) => r.json()).then((d) => {
+        if (d.threads) {
+          setStaffThreads(d.threads);
+          setStaffUnread(d.unreadTotal ?? 0);
+        }
+      });
     }
   }
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault();
-    if (!activeUser || !newMessage.trim()) return;
+    if (!newMessage.trim()) return;
 
+    if (tab === "equipe" && activeStaff) {
+      const res = await fetch("/api/staff-messages/inbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toStaffId: activeStaff.id, content: newMessage }),
+      });
+      if (res.ok) {
+        setNewMessage("");
+        loadStaffMessages(activeStaff.id, activeStaff.name);
+      }
+      return;
+    }
+
+    if (!activeUser) return;
     const res = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ toUserId: activeUser.id, content: newMessage }),
     });
-
     if (res.ok) {
       setNewMessage("");
       loadMessages(activeUser.id);
     }
   }
 
+  const showChat = tab === "matchs" ? activeUser : activeStaff;
+
   return (
     <main className="mx-auto flex max-w-4xl gap-4 px-4 py-10">
-      <aside className="w-64 shrink-0 rounded-2xl border border-peach/60 bg-white p-4 shadow-sm">
-        <h2 className="font-semibold text-warm">Conversations</h2>
-        {conversations.length === 0 && (
-          <p className="mt-4 text-sm text-warm-muted">Aucun match mutuel pour le moment</p>
+      <aside className="w-64 shrink-0 rounded-2xl border border-rose/15 bg-white/90 p-4 shadow-sm">
+        <div className="flex gap-1 rounded-full bg-cream p-1 text-xs">
+          <button
+            onClick={() => setTab("matchs")}
+            className={`flex-1 rounded-full py-1.5 ${tab === "matchs" ? "bg-white font-medium text-warm shadow-sm" : "text-warm-muted"}`}
+          >
+            Matchs
+          </button>
+          <button
+            onClick={() => setTab("equipe")}
+            className={`relative flex-1 rounded-full py-1.5 ${tab === "equipe" ? "bg-white font-medium text-warm shadow-sm" : "text-warm-muted"}`}
+          >
+            Équipe
+            {staffUnread > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose text-[9px] text-white">
+                {staffUnread}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {tab === "matchs" && (
+          <>
+            {conversations.length === 0 && (
+              <p className="mt-4 text-sm text-warm-muted">Aucun match mutuel pour le moment</p>
+            )}
+            <ul className="mt-4 space-y-1">
+              {conversations.map((conv) => {
+                const partner = getPartner(conv);
+                return (
+                  <li key={conv.id}>
+                    <button
+                      onClick={() => loadMessages(partner.id)}
+                      className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                        activeUser?.id === partner.id
+                          ? "bg-rose/10 font-medium text-warm"
+                          : "text-warm-muted hover:bg-cream"
+                      }`}
+                    >
+                      {partner.firstName}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
-        <ul className="mt-4 space-y-1">
-          {conversations.map((conv) => {
-            const partner = getPartner(conv);
-            return (
-              <li key={conv.id}>
-                <button
-                  onClick={() => loadMessages(partner.id)}
-                  className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
-                    activeUser?.id === partner.id
-                      ? "bg-peach/60 font-medium text-warm"
-                      : "text-warm-muted hover:bg-cream-dark"
-                  }`}
-                >
-                  {partner.firstName}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+
+        {tab === "equipe" && (
+          <>
+            {staffThreads.length === 0 && (
+              <p className="mt-4 text-sm text-warm-muted">Aucun message de l&apos;équipe</p>
+            )}
+            <ul className="mt-4 space-y-1">
+              {staffThreads.map((t) => (
+                <li key={t.staffId}>
+                  <button
+                    onClick={() => loadStaffMessages(t.staffId, t.staffName)}
+                    className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                      activeStaff?.id === t.staffId
+                        ? "bg-plum/10 font-medium text-warm"
+                        : "text-warm-muted hover:bg-cream"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      <Shield className="h-3 w-3 text-plum" />
+                      {t.staffName}
+                      {t.unread > 0 && (
+                        <span className="ml-auto rounded-full bg-rose px-1.5 text-[10px] text-white">{t.unread}</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </aside>
 
-      <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-peach/60 bg-white shadow-sm">
-        {activeUser ? (
+      <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-rose/15 bg-white/90 shadow-sm">
+        {showChat ? (
           <>
-            <div className="border-b border-peach/40 bg-gradient-to-r from-peach/30 to-cream px-6 py-4">
-              <h2 className="font-semibold text-warm">{activeUser.name}</h2>
-              <p className="text-xs text-warm-muted">Échange après match mutuel — gratuit</p>
+            <div className={`border-b px-6 py-4 ${tab === "equipe" ? "bg-plum/5 border-plum/10" : "bg-rose/5 border-rose/10"}`}>
+              <h2 className="font-semibold text-warm">
+                {tab === "equipe" ? activeStaff?.name : activeUser?.name}
+              </h2>
+              <p className="text-xs text-warm-muted">
+                {tab === "equipe"
+                  ? "Message de l'équipe AfricanConnect — vous pouvez répondre"
+                  : "Échange après match mutuel — gratuit"}
+              </p>
             </div>
             <div className="flex-1 space-y-3 overflow-y-auto p-6" style={{ minHeight: 300 }}>
-              {messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                    m.fromUserId === session?.user?.id
-                      ? "ml-auto bg-gradient-to-r from-coral to-terracotta text-white"
-                      : "bg-cream-dark text-warm"
-                  }`}
-                >
-                  {m.content}
-                </div>
-              ))}
+              {tab === "matchs" &&
+                messages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                      m.fromUserId === session?.user?.id
+                        ? "ml-auto gradient-pulse text-white"
+                        : "bg-cream text-warm"
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                ))}
+              {tab === "equipe" &&
+                staffMessages.map((m) => (
+                  <div
+                    key={m.id}
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                      m.fromUserId === session?.user?.id
+                        ? "ml-auto bg-warm text-cream"
+                        : "border border-plum/20 bg-plum/5 text-warm"
+                    }`}
+                  >
+                    {m.fromUserId !== session?.user?.id && (
+                      <p className="mb-1 flex items-center gap-1 text-xs text-plum">
+                        <Shield className="h-3 w-3" /> Équipe AfricanConnect
+                      </p>
+                    )}
+                    {m.content}
+                  </div>
+                ))}
             </div>
-            <form onSubmit={sendMessage} className="flex gap-2 border-t border-peach/40 p-4">
+            <form onSubmit={sendMessage} className="flex gap-2 border-t border-rose/10 p-4">
               <input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Votre message..."
-                className="flex-1 rounded-xl border border-peach px-4 py-2.5 focus:border-coral focus:outline-none"
+                className="flex-1 rounded-xl border border-rose/20 px-4 py-2.5 focus:border-rose focus:outline-none"
               />
-              <button
-                type="submit"
-                className="rounded-full bg-warm px-5 py-2.5 font-medium text-cream"
-              >
+              <button type="submit" className="rounded-full gradient-pulse px-5 py-2.5 font-medium text-white">
                 Envoyer
               </button>
             </form>
