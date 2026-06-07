@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --rose: #e8195a;
+  --rose-dark: #c41048;
+  --rose-glow: #ff4d8a;
+  --plum: #6b1d5c;
+  --plum-dark: #4a1240;
+  --amber: #ff8c42;
+  --amber-light: #ffb347;
+  --wine: #8b1a4a;
+  --cream: #fff5f7;
+  --cream-dark: #ffe8ee;
+  --warm: #2d1b2e;
+  --warm-muted: #6b5a6d;
+  --background: #fff5f7;
+  --foreground: #2d1b2e;
 }
 
 @theme inline {
+  --color-rose: var(--rose);
+  --color-rose-dark: var(--rose-dark);
+  --color-rose-glow: var(--rose-glow);
+  --color-plum: var(--plum);
+  --color-plum-dark: var(--plum-dark);
+  --color-amber: var(--amber);
+  --color-amber-light: var(--amber-light);
+  --color-wine: var(--wine);
+  --color-cream: var(--cream);
+  --color-cream-dark: var(--cream-dark);
+  --color-warm: var(--warm);
+  --color-warm-muted: var(--warm-muted);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: var(--font-playfair);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+/* Dégradé hypnotique animé */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.gradient-pulse {
+  background: linear-gradient(135deg, var(--plum), var(--rose), var(--amber), var(--wine));
+  background-size: 300% 300%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(232, 25, 90, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(232, 25, 90, 0.5); }
+}
+
+.glow-rose {
+  animation: glow 3s ease-in-out infinite;
 }

@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PathType {
+  HALAL
+  SERIOUS
+}
+
+enum InterestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+enum ReportTargetType {
+  PROFILE
+  MESSAGE
+  TESTIMONIAL
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  firstName String
+  path      PathType
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile         Profile?
+  sentInterests   Interest[] @relation("SentInterests")
+  receivedInterests Interest[] @relation("ReceivedInterests")
+  sentMessages    Message[]  @relation("SentMessages")
+  receivedMessages  Message[]  @relation("ReceivedMessages")
+  profileVisits   ProfileVisit[] @relation("ProfileVisits")
+  visitors        ProfileVisit[] @relation("ProfileVisitors")
+  passesSent      UserPass[] @relation("PassesSent")
+  passesReceived  UserPass[] @relation("PassesReceived")
+  validationsGiven EncounterValidation[] @relation("ValidationsGiven")
+  validationsReceived EncounterValidation[] @relation("ValidationsReceived")
+  testimonialsWritten ProfileTestimonial[] @relation("TestimonialsWritten")
+  testimonialsReceived ProfileTestimonial[] @relation("TestimonialsReceived")
+  reportsFiled      ContentReport[] @relation("ReportsFiled")
+  reportsResolved   ContentReport[] @relation("ReportsResolved")
+}
+
+model Profile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  gender         String?
+  seekingGender  String?
+  age            Int?
+  height         Int?
+  profession     String?
+  religion       String?
+  origin         String?
+  maritalStatus  String?
+  location       String?
+  bio            String?
+  qualities      String?
+  interests      String?
+  profileTitle   String?
+  lookingFor     String?
+  children       String?
+  alcohol        String?
+  smoking        String?
+  pets           String?
+  secretQuestion String?
+  secretAnswer   String?
+  trustScore     Int      @default(0)
+  photoUrl       String?
+  verified       Boolean  @default(false)
+  completed      Boolean  @default(false)
+  completionPct  Int      @default(0)
+  discoverVisible Boolean @default(true)
+
+  seekingAgeMax       Int?
+  seekingHeightMax      Int?
+  seekingProfession     String?
+  seekingReligion       String?
+  seekingOrigin         String?
+  seekingMaritalStatus  String?
+  seekingLocation       String?
+
+  photos    ProfilePhoto[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProfilePhoto {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([profileId])
+}
+
+model Interest {
+  id         String         @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  status     InterestStatus @default(PENDING)
+  createdAt  DateTime       @default(now())
+
+  fromUser User @relation("SentInterests", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("ReceivedInterests", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("SentMessages", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("ReceivedMessages", fields: [toUserId], references: [id], onDelete: Cascade)
+}
+
+model ProfileVisit {
+  id            String   @id @default(cuid())
+  visitorId     String
+  visitedUserId String
+  createdAt     DateTime @default(now())
+
+  visitor     User @relation("ProfileVisits", fields: [visitorId], references: [id], onDelete: Cascade)
+  visitedUser User @relation("ProfileVisitors", fields: [visitedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([visitorId, visitedUserId])
+  @@index([visitedUserId, createdAt])
+}
+
+model UserPass {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("PassesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("PassesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Encounter {
+  id                String   @id @default(cuid())
+  userAId           String
+  userBId           String
+  userAConfirmed    Boolean  @default(false)
+  userBConfirmed    Boolean  @default(false)
+  userASecretCorrect Boolean @default(false)
+  userBSecretCorrect Boolean @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  validations   EncounterValidation[]
+  testimonials  ProfileTestimonial[]
+
+  @@unique([userAId, userBId])
+}
+
+model EncounterValidation {
+  id              String   @id @default(cuid())
+  encounterId     String
+  validatorId     String
+  validatedUserId String
+  badges          String
+  trustIncrement  Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  encounter     Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  validator     User      @relation("ValidationsGiven", fields: [validatorId], references: [id], onDelete: Cascade)
+  validatedUser User      @relation("ValidationsReceived", fields: [validatedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([encounterId, validatorId])
+}
+
+model ProfileTestimonial {
+  id           String   @id @default(cuid())
+  authorId     String
+  targetUserId String
+  encounterId  String
+  content      String
+  createdAt    DateTime @default(now())
+
+  author    User      @relation("TestimonialsWritten", fields: [authorId], references: [id], onDelete: Cascade)
+  target    User      @relation("TestimonialsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  encounter Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+}
+
+model ContentReport {
+  id           String           @id @default(cuid())
+  reporterId   String
+  targetType   ReportTargetType
+  targetId     String
+  targetUserId String?
+  reason       String
+  details      String?
+  status       ReportStatus     @default(PENDING)
+  resolvedById String?
+  resolution   String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  reporter   User  @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy User? @relation("ReportsResolved", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+}
