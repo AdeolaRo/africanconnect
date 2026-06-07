@@ -36,6 +36,18 @@ enum ReportTargetType {
   TESTIMONIAL
 }
 
+enum MetResponse {
+  NOT_YET
+  MET
+  NOT_MET
+}
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -44,6 +56,8 @@ model User {
   path      PathType
   role      UserRole @default(USER)
   isActive  Boolean  @default(true)
+  termsAcceptedAt DateTime?
+  termsVersion    Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -62,6 +76,10 @@ model User {
   testimonialsReceived ProfileTestimonial[] @relation("TestimonialsReceived")
   reportsFiled      ContentReport[] @relation("ReportsFiled")
   reportsResolved   ContentReport[] @relation("ReportsResolved")
+  testimonialsModerated ProfileTestimonial[] @relation("TestimonialsModerated")
+  staffMessagesSent     StaffMessage[] @relation("StaffMessagesSent")
+  staffMessagesReceived StaffMessage[] @relation("StaffMessagesReceived")
+  siteDocumentsUpdated  SiteDocument[] @relation("SiteDocumentsUpdated")
 }
 
 model Profile {
@@ -90,6 +108,7 @@ model Profile {
   secretQuestion String?
   secretAnswer   String?
   trustScore     Int      @default(0)
+  verifiedEncounterCount Int @default(0)
   photoUrl       String?
   verified       Boolean  @default(false)
   completed      Boolean  @default(false)
@@ -179,6 +198,11 @@ model Encounter {
   userBConfirmed    Boolean  @default(false)
   userASecretCorrect Boolean @default(false)
   userBSecretCorrect Boolean @default(false)
+  userAResponse     MetResponse?
+  userBResponse     MetResponse?
+  mutuallyVerifiedAt DateTime?
+  archivedAt        DateTime?
+  disputed          Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -210,11 +234,45 @@ model ProfileTestimonial {
   targetUserId String
   encounterId  String
   content      String
+  rating       Int?
+  status       TestimonialStatus @default(PENDING)
+  publishAt    DateTime?
+  moderatedAt  DateTime?
+  moderatedById String?
   createdAt    DateTime @default(now())
 
-  author    User      @relation("TestimonialsWritten", fields: [authorId], references: [id], onDelete: Cascade)
-  target    User      @relation("TestimonialsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
-  encounter Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  author      User      @relation("TestimonialsWritten", fields: [authorId], references: [id], onDelete: Cascade)
+  target      User      @relation("TestimonialsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  encounter   Encounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  moderatedBy User?     @relation("TestimonialsModerated", fields: [moderatedById], references: [id], onDelete: SetNull)
+
+  @@index([status, publishAt])
+}
+
+model SiteDocument {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  title       String
+  content     String
+  version     Int      @default(1)
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+  updatedBy   User?    @relation("SiteDocumentsUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+model StaffMessage {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  fromUser User @relation("StaffMessagesSent", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("StaffMessagesReceived", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([toUserId, read, createdAt])
+  @@index([fromUserId, toUserId, createdAt])
 }
 
 model ContentReport {

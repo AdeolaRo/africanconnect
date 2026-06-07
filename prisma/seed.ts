@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import {
+  DEFAULT_TERMS_CONTENT,
+  DEFAULT_TERMS_TITLE,
+  DEFAULT_TERMS_VERSION,
+} from "../src/lib/default-terms";
 
 const prisma = new PrismaClient();
 
@@ -505,6 +510,18 @@ async function main() {
   });
 
   console.log("✅ Comptes staff : Admin (char.wilsons@gmail.com) + Modérateur (enguequeen@gmail.com)");
+
+  await prisma.siteDocument.upsert({
+    where: { key: "terms" },
+    update: {},
+    create: {
+      key: "terms",
+      title: DEFAULT_TERMS_TITLE,
+      content: DEFAULT_TERMS_CONTENT,
+      version: DEFAULT_TERMS_VERSION,
+    },
+  });
+  console.log("✅ Conditions d'utilisation par défaut");
 }
 
 main()
