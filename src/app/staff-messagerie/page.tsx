@@ -7,13 +7,33 @@ import Header from "@/components/Header";
 import BrandBadge from "@/components/BrandBadge";
 import StaffPageNav from "@/components/StaffPageNav";
 import { fetchJson } from "@/lib/fetch-json";
-import { isModerator } from "@/lib/roles";
+import { isModerator, isStaff, ROLES } from "@/lib/roles";
 import { Mail, Search, Send, Shield, MessageSquare, Users, Calendar } from "lucide-react";
+
+function roleLabel(role: string) {
+  if (role === ROLES.ADMIN) return "Admin";
+  if (role === ROLES.MODERATOR) return "Modérateur";
+  return "Membre";
+}
+
+function RoleBadge({ role }: { role: string }) {
+  if (!isStaff(role)) return null;
+  return (
+    <span
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        role === ROLES.ADMIN ? "bg-plum/15 text-plum" : "bg-rose/15 text-rose"
+      }`}
+    >
+      {roleLabel(role)}
+    </span>
+  );
+}
 
 interface Thread {
   userId: string;
   firstName: string;
   email: string;
+  role: string;
   lastMessage: string;
   lastAt: string;
   unread: number;
@@ -41,6 +61,7 @@ export default function StaffMessageriePage() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [messages, setMessages] = useState<StaffMsg[]>([]);
   const [users, setUsers] = useState<UserOption[]>([]);
+  const [teamUsers, setTeamUsers] = useState<UserOption[]>([]);
   const [activeUser, setActiveUser] = useState<UserOption | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [search, setSearch] = useState("");
@@ -67,8 +88,11 @@ export default function StaffMessageriePage() {
     const q = search.trim();
     const url = q ? `/api/staff-messages/users?q=${encodeURIComponent(q)}` : "/api/staff-messages/users";
     const timer = setTimeout(() => {
-      fetchJson<{ users: UserOption[] }>(url).then(({ data }) => {
-        if (data) setUsers(data.users);
+      fetchJson<{ users: UserOption[]; team?: UserOption[] }>(url).then(({ data }) => {
+        if (data) {
+          setUsers(data.users);
+          setTeamUsers(data.team ?? data.users.filter((u) => isStaff(u.role)));
+        }
       });
     }, q ? 300 : 0);
     return () => clearTimeout(timer);
@@ -125,7 +149,7 @@ export default function StaffMessageriePage() {
               Messagerie interne
             </h1>
             <p className="text-sm text-warm-muted">
-              Contacter tout membre — {threads.length} conversation{threads.length > 1 ? "s" : ""}
+              Membres et équipe (admin, modérateurs) — {threads.length} conversation{threads.length > 1 ? "s" : ""}
               {totalUnread > 0 && ` · ${totalUnread} non lu${totalUnread > 1 ? "s" : ""}`}
             </p>
           </div>
@@ -155,14 +179,16 @@ export default function StaffMessageriePage() {
               <ul className="max-h-64 flex-1 overflow-y-auto lg:max-h-none">
                 {filteredThreads.length === 0 ? (
                   <li className="px-5 py-8 text-center text-sm text-warm-muted">
-                    Aucune conversation — recherchez un membre ci-dessous
+                    Aucune conversation — recherchez un contact ci-dessous
                   </li>
                 ) : (
                   filteredThreads.map((t) => (
                     <li key={t.userId}>
                       <button
                         type="button"
-                        onClick={() => openThread({ id: t.userId, firstName: t.firstName, email: t.email, role: "USER" })}
+                        onClick={() =>
+                          openThread({ id: t.userId, firstName: t.firstName, email: t.email, role: t.role })
+                        }
                         className={`flex w-full items-start gap-3 border-b border-rose/8 px-5 py-4 text-left transition-colors hover:bg-rose/5 ${
                           activeUser?.id === t.userId ? "bg-rose/10" : ""
                         }`}
@@ -172,7 +198,10 @@ export default function StaffMessageriePage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-warm">{t.firstName}</span>
+                            <span className="flex min-w-0 items-center gap-1.5 font-semibold text-warm">
+                              <span className="truncate">{t.firstName}</span>
+                              <RoleBadge role={t.role} />
+                            </span>
                             {t.unread > 0 && (
                               <span className="shrink-0 rounded-full bg-rose px-2 py-0.5 text-[10px] font-bold text-white">
                                 {t.unread}
@@ -201,27 +230,60 @@ export default function StaffMessageriePage() {
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Rechercher un membre…"
+                    placeholder="Rechercher un membre ou un collègue…"
                     className="w-full rounded-xl border border-rose/20 bg-white py-2.5 pl-10 pr-3 text-sm focus:border-rose focus:outline-none focus:ring-2 focus:ring-rose/15"
                   />
                 </div>
-                <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
-                  {users.slice(0, 25).map((u) => (
+                {!search.trim() && teamUsers.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-warm-muted">Équipe</p>
+                    <ul className="space-y-1">
+                      {teamUsers.map((u) => (
+                        <li key={u.id}>
+                          <button
+                            type="button"
+                            onClick={() => openThread(u)}
+                            className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-white ${
+                              activeUser?.id === u.id ? "bg-white ring-1 ring-plum/20" : ""
+                            }`}
+                          >
+                            <span>
+                              <span className="font-medium text-warm">{u.firstName}</span>
+                              <span className="block truncate text-xs text-warm-muted">{u.email}</span>
+                            </span>
+                            <RoleBadge role={u.role} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <p className="mb-1.5 mt-3 text-[11px] font-semibold uppercase tracking-wide text-warm-muted">
+                  {search.trim() ? "Résultats" : "Membres"}
+                </p>
+                <ul className="mt-1 max-h-48 space-y-1 overflow-y-auto">
+                  {users
+                    .filter((u) => search.trim() || !isStaff(u.role))
+                    .slice(0, 25)
+                    .map((u) => (
                     <li key={u.id}>
                       <button
                         type="button"
                         onClick={() => openThread(u)}
-                        className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-white ${
+                        className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors hover:bg-white ${
                           activeUser?.id === u.id ? "bg-white ring-1 ring-rose/20" : ""
                         }`}
                       >
-                        <span className="font-medium text-warm">{u.firstName}</span>
-                        <span className="block truncate text-xs text-warm-muted">{u.email}</span>
+                        <span className="min-w-0">
+                          <span className="font-medium text-warm">{u.firstName}</span>
+                          <span className="block truncate text-xs text-warm-muted">{u.email}</span>
+                        </span>
+                        <RoleBadge role={u.role} />
                       </button>
                     </li>
                   ))}
-                  {users.length === 0 && (
-                    <li className="py-4 text-center text-xs text-warm-muted">Aucun membre trouvé</li>
+                  {users.filter((u) => search.trim() || !isStaff(u.role)).length === 0 && (
+                    <li className="py-4 text-center text-xs text-warm-muted">Aucun contact trouvé</li>
                   )}
                 </ul>
               </div>
@@ -236,7 +298,10 @@ export default function StaffMessageriePage() {
                       {activeUser.firstName.charAt(0).toUpperCase()}
                     </span>
                     <div>
-                      <h2 className="text-lg font-semibold text-warm">{activeUser.firstName}</h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-warm">{activeUser.firstName}</h2>
+                        <RoleBadge role={activeUser.role} />
+                      </div>
                       <p className="text-sm text-warm-muted">{activeUser.email}</p>
                     </div>
                   </div>
@@ -266,8 +331,13 @@ export default function StaffMessageriePage() {
                             >
                               {!isMe && (
                                 <p className="mb-1.5 flex items-center gap-1 text-xs font-medium opacity-80">
-                                  <Shield className="h-3 w-3" />
+                                  {isStaff(m.fromUser.role) ? (
+                                    <Shield className="h-3 w-3" />
+                                  ) : null}
                                   {m.fromUser.firstName}
+                                  {isStaff(m.fromUser.role) && (
+                                    <span className="opacity-70">· {roleLabel(m.fromUser.role)}</span>
+                                  )}
                                 </p>
                               )}
                               <p>{m.content}</p>
@@ -308,9 +378,9 @@ export default function StaffMessageriePage() {
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose/10">
                     <Mail className="h-8 w-8 text-rose/50" />
                   </div>
-                  <p className="font-serif text-lg text-warm">Sélectionnez un membre</p>
+                  <p className="font-serif text-lg text-warm">Sélectionnez un contact</p>
                   <p className="max-w-sm text-center text-sm">
-                    Choisissez une conversation existante ou recherchez un membre pour lui envoyer un message.
+                    Choisissez une conversation existante ou recherchez un membre ou un collègue de l&apos;équipe.
                   </p>
                 </div>
               )}

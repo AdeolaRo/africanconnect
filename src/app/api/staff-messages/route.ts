@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireModerator } from "@/lib/api-auth";
-import { isStaff } from "@/lib/roles";
 import { moderateText, moderationErrorResponse } from "@/lib/content-moderation";
 
 export async function GET(req: Request) {
@@ -53,6 +52,7 @@ export async function GET(req: Request) {
       userId: string;
       firstName: string;
       email: string;
+      role: string;
       lastMessage: string;
       lastAt: string;
       unread: number;
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 
   for (const m of allMessages) {
     const partner = m.fromUserId === staffId ? m.toUser : m.fromUser;
-    if (isStaff(partner.role)) continue;
+    if (partner.id === staffId) continue;
 
     const existing = threadMap.get(partner.id);
     const unreadAdd = m.toUserId === staffId && !m.read ? 1 : 0;
@@ -71,6 +71,7 @@ export async function GET(req: Request) {
         userId: partner.id,
         firstName: partner.firstName,
         email: partner.email,
+        role: partner.role,
         lastMessage: m.content,
         lastAt: m.createdAt.toISOString(),
         unread: unreadAdd,
@@ -105,8 +106,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Utilisateur introuvable ou inactif" }, { status: 404 });
   }
 
-  if (isStaff(recipient.role)) {
-    return NextResponse.json({ error: "Envoi réservé aux membres" }, { status: 400 });
+  if (toUserId === session!.user!.id) {
+    return NextResponse.json({ error: "Impossible de s'écrire à soi-même" }, { status: 400 });
   }
 
   const check = moderateText(content, "message");
