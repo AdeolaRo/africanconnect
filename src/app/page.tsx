@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import BrandBadge from "@/components/BrandBadge";
 import FeatureCard from "@/components/FeatureCard";
 import StepIndicator from "@/components/StepIndicator";
+import HomePreviewProfiles from "@/components/HomePreviewProfiles";
 import { Shield, Sparkles, Users, ArrowRight } from "lucide-react";
 import { images } from "@/lib/images";
 
@@ -55,6 +56,8 @@ export default function HomePage() {
             <StepIndicator currentStep={1} />
           </div>
         </section>
+
+        <HomePreviewProfiles />
 
         <section className="mx-auto max-w-6xl px-4 py-20">
           <div className="text-center">
@@ -122,9 +125,6 @@ export default function HomePage() {
         </section>
       </main>
 
-      <footer className="border-t border-rose/15 bg-white py-8 text-center text-sm text-warm-muted">
-        © {new Date().getFullYear()} AfricanConnect — africanconnect.online
-      </footer>
     </>
   );
 }

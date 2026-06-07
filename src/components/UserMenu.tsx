@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { ChevronDown, LogOut, Settings, Eye, EyeOff } from "lucide-react";
+import { ChevronDown, LogOut, Settings, Eye, EyeOff, FileText } from "lucide-react";
 import { fetchJson } from "@/lib/fetch-json";
+import { isAdmin } from "@/lib/roles";
 
 interface UserMenuProps {
   name: string;
@@ -94,6 +95,21 @@ export default function UserMenu({ name, role }: UserMenuProps) {
             <Settings className="h-4 w-4 shrink-0 text-rose" />
             Paramètres de recherche
           </Link>
+
+          {isAdmin(role) && (
+            <Link
+              href="/admin/conditions"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-warm hover:bg-cream/80"
+            >
+              <FileText className="h-4 w-4 shrink-0 text-plum" />
+              <span>
+                Conditions d&apos;utilisation
+                <span className="mt-0.5 block text-xs text-warm-muted">Édition admin des CGU</span>
+              </span>
+            </Link>
+          )}
 
           <div className="my-1 border-t border-rose/10" />
 

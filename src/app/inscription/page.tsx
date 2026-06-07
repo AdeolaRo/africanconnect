@@ -13,6 +13,7 @@ export default function InscriptionPage() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -21,10 +22,16 @@ export default function InscriptionPage() {
     setError("");
     setLoading(true);
 
+    if (!acceptedTerms) {
+      setError("Vous devez accepter les conditions d'utilisation");
+      setLoading(false);
+      return;
+    }
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, firstName }),
+      body: JSON.stringify({ email, password, firstName, acceptTerms: true }),
     });
 
     const data = await res.json();
@@ -108,11 +115,28 @@ export default function InscriptionPage() {
                 />
               </div>
 
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-rose/15 bg-cream/50 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-rose/30 text-rose focus:ring-rose/30"
+                  required
+                />
+                <span className="text-sm text-warm-muted">
+                  J&apos;ai lu et j&apos;accepte les{" "}
+                  <Link href="/conditions-utilisation" target="_blank" className="font-medium text-rose hover:underline">
+                    conditions d&apos;utilisation
+                  </Link>{" "}
+                  d&apos;AfricanConnect.
+                </span>
+              </label>
+
               {error && <p className="text-sm text-red-600">{error}</p>}
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !acceptedTerms}
                 className="w-full rounded-full gradient-pulse py-3.5 font-semibold text-white shadow-md shadow-rose/30 hover:shadow-lg disabled:opacity-50 transition-all"
               >
                 {loading ? "Création..." : "Créer mon compte — Gratuit"}
