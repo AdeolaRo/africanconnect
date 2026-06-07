@@ -169,6 +169,16 @@ bash scripts/deploy-update.sh --seed
 
 Le script enchaîne : `git pull` → `npm install` → `prisma db push` → `npm run build` → `pm2 restart africanconnect-online`.
 
+> **Conflit `prisma/schema.prisma` au pull ?**  
+> En prod, le provider PostgreSQL ne doit pas rester modifié à la main dans git. Réinitialisez puis relancez :
+> ```bash
+> cd /var/www/africanconnect-online
+> git checkout -- prisma/schema.prisma
+> git pull origin main
+> bash scripts/deploy-update.sh
+> ```
+> Le script remet automatiquement `provider = "postgresql"` après chaque pull.
+
 Variables optionnelles :
 
 ```bash

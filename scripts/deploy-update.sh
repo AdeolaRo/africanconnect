@@ -42,7 +42,16 @@ fi
 
 log "1/6 — git pull origin $BRANCH"
 git fetch origin "$BRANCH"
+# Le dépôt utilise sqlite (dev) ; la prod avait souvent provider=postgresql en local non commité.
+if ! git diff --quiet prisma/schema.prisma 2>/dev/null; then
+  log "schema.prisma modifié localement — réinitialisation avant pull (postgres ré-appliqué ensuite)"
+  git checkout -- prisma/schema.prisma
+fi
 git pull origin "$BRANCH"
+if grep -q 'provider = "sqlite"' prisma/schema.prisma; then
+  sed -i 's/provider = "sqlite"/provider = "postgresql"/' prisma/schema.prisma
+  log "schema.prisma → provider postgresql (prod)"
+fi
 
 log "2/6 — npm install"
 npm install
