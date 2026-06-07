@@ -84,6 +84,9 @@ export const metadata: Metadata = {
     email: false,
     address: false,
   },
+  verification: {
+    google: "mrNJPI5nwEQdSwyZymJjvsrIj68a5sX0gsMF87gPalY",
+  },
 };
 
 export const viewport: Viewport = {
