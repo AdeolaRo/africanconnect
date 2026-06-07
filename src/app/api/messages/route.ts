@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { moderateText, moderationErrorResponse } from "@/lib/content-moderation";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -78,6 +79,11 @@ export async function POST(req: Request) {
 
   if (!allowed) {
     return NextResponse.json({ error: "Match mutuel requis pour échanger" }, { status: 403 });
+  }
+
+  const check = moderateText(content, "message");
+  if (!check.allowed) {
+    return NextResponse.json(moderationErrorResponse(check), { status: 400 });
   }
 
   const message = await prisma.message.create({

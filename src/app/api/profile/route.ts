@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { calculateCompletion, isProfileComplete } from "@/lib/questions";
+import { moderateProfileFields, moderationErrorResponse } from "@/lib/content-moderation";
 
 export async function GET() {
   try {
@@ -39,6 +40,17 @@ export async function PUT(req: Request) {
     }
 
     const body = await req.json();
+
+    const profileCheck = moderateProfileFields({
+      bio: body.bio,
+      profileTitle: body.profileTitle,
+      secretQuestion: body.secretQuestion,
+      profession: body.profession,
+    });
+    if (!profileCheck.allowed) {
+      return NextResponse.json(moderationErrorResponse(profileCheck), { status: 400 });
+    }
+
     const completionPct = calculateCompletion(body);
     const completed = isProfileComplete(body);
 
