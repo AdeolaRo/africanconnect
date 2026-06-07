@@ -68,7 +68,7 @@ export default function DiscoverCard({
     <article
       className={`group relative flex flex-col overflow-hidden rounded-3xl border bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-rose/15 ${
         featured
-          ? "border-rose/40 ring-2 ring-rose/20 md:col-span-2"
+          ? "border-rose/40 ring-2 ring-rose/20 lg:col-span-2"
           : "border-rose/15"
       }`}
     >

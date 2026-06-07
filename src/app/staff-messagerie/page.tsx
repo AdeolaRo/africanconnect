@@ -7,8 +7,9 @@ import Header from "@/components/Header";
 import BrandBadge from "@/components/BrandBadge";
 import StaffPageNav from "@/components/StaffPageNav";
 import { fetchJson } from "@/lib/fetch-json";
+import { notifyMessagesRead } from "@/lib/message-notifications";
 import { isModerator, isStaff, ROLES } from "@/lib/roles";
-import { Mail, Search, Send, Shield, MessageSquare, Users, Calendar } from "lucide-react";
+import { Mail, Search, Send, Shield, MessageSquare, Users, Calendar, ArrowLeft } from "lucide-react";
 
 function roleLabel(role: string) {
   if (role === ROLES.ADMIN) return "Admin";
@@ -105,6 +106,7 @@ export default function StaffMessageriePage() {
     if (data) setMessages(data.messages);
     setLoadingThread(false);
     loadThreads();
+    notifyMessagesRead();
   }
 
   async function sendMessage(e: React.FormEvent) {
@@ -130,6 +132,12 @@ export default function StaffMessageriePage() {
   });
 
   const totalUnread = threads.reduce((n, t) => n + t.unread, 0);
+  const mobileChatOpen = !!activeUser;
+
+  function closeMobileChat() {
+    setActiveUser(null);
+    setMessages([]);
+  }
 
   if (status === "loading") {
     return <div className="flex min-h-screen items-center justify-center text-warm-muted">Chargement...</div>;
@@ -138,27 +146,30 @@ export default function StaffMessageriePage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8">
+      <main className="page-container-wide">
         <StaffPageNav backHref="/moderation" backLabel="Retour modération" role={session?.user?.role} />
 
-        <div className="mb-8 flex items-center gap-3">
+        <div className="mb-6 flex items-center gap-3 md:mb-8">
           <BrandBadge size="lg" />
-          <div>
-            <h1 className="flex items-center gap-2 font-serif text-2xl font-bold text-warm">
-              <Mail className="h-6 w-6 text-plum" />
-              Messagerie interne
+          <div className="min-w-0">
+            <h1 className="flex items-center gap-2 font-serif text-xl font-bold text-warm md:text-2xl">
+              <Mail className="h-5 w-5 shrink-0 text-plum md:h-6 md:w-6" />
+              <span className="truncate">Messagerie interne</span>
             </h1>
-            <p className="text-sm text-warm-muted">
-              Membres et équipe (admin, modérateurs) — {threads.length} conversation{threads.length > 1 ? "s" : ""}
+            <p className="text-xs text-warm-muted md:text-sm">
+              Membres et équipe — {threads.length} conv.
               {totalUnread > 0 && ` · ${totalUnread} non lu${totalUnread > 1 ? "s" : ""}`}
             </p>
           </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-rose/15 bg-white/95 shadow-md shadow-rose/5">
-          <div className="grid min-h-[600px] lg:grid-cols-[340px_1fr]">
-            {/* Panneau gauche */}
-            <aside className="flex flex-col border-b border-rose/10 lg:border-b-0 lg:border-r">
+          <div className="grid min-h-0 lg:min-h-[600px] lg:grid-cols-[340px_1fr]">
+            <aside
+              className={`flex flex-col border-b border-rose/10 lg:border-b-0 lg:border-r ${
+                mobileChatOpen ? "hidden lg:flex" : "flex"
+              }`}
+            >
               <div className="border-b border-rose/10 bg-gradient-to-r from-cream/80 to-white px-5 py-4">
                 <h2 className="flex items-center gap-2 font-serif text-lg font-bold text-warm">
                   <MessageSquare className="h-5 w-5 text-rose" />
@@ -176,7 +187,7 @@ export default function StaffMessageriePage() {
                 </div>
               </div>
 
-              <ul className="max-h-64 flex-1 overflow-y-auto lg:max-h-none">
+              <ul className="max-h-[40vh] flex-1 overflow-y-auto lg:max-h-none">
                 {filteredThreads.length === 0 ? (
                   <li className="px-5 py-8 text-center text-sm text-warm-muted">
                     Aucune conversation — recherchez un contact ci-dessous
@@ -289,24 +300,33 @@ export default function StaffMessageriePage() {
               </div>
             </aside>
 
-            {/* Zone de conversation */}
-            <section className="flex flex-col">
+            <section
+              className={`chat-mobile-full flex-col ${mobileChatOpen ? "flex" : "hidden lg:flex"}`}
+            >
               {activeUser ? (
                 <>
-                  <div className="flex items-center gap-4 border-b border-rose/10 bg-gradient-to-r from-plum/5 to-rose/5 px-6 py-5">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-plum to-rose font-serif text-lg font-bold text-white">
+                  <div className="flex items-center gap-3 border-b border-rose/10 bg-gradient-to-r from-plum/5 to-rose/5 px-4 py-4 md:px-6 md:py-5">
+                    <button
+                      type="button"
+                      onClick={closeMobileChat}
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-rose/15 text-warm-muted hover:bg-white lg:hidden"
+                      aria-label="Retour aux conversations"
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </button>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-plum to-rose font-serif text-base font-bold text-white md:h-12 md:w-12 md:text-lg">
                       {activeUser.firstName.charAt(0).toUpperCase()}
                     </span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold text-warm">{activeUser.firstName}</h2>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="truncate text-base font-semibold text-warm md:text-lg">{activeUser.firstName}</h2>
                         <RoleBadge role={activeUser.role} />
                       </div>
-                      <p className="text-sm text-warm-muted">{activeUser.email}</p>
+                      <p className="truncate text-xs text-warm-muted md:text-sm">{activeUser.email}</p>
                     </div>
                   </div>
 
-                  <div className="flex-1 space-y-4 overflow-y-auto bg-cream/20 px-6 py-6" style={{ minHeight: 360 }}>
+                  <div className="flex-1 space-y-4 overflow-y-auto bg-cream/20 px-4 py-4 md:px-6 md:py-6" style={{ minHeight: 200 }}>
                     {loadingThread ? (
                       <p className="text-center text-sm text-warm-muted">Chargement des messages…</p>
                     ) : messages.length === 0 ? (
@@ -356,25 +376,25 @@ export default function StaffMessageriePage() {
                     )}
                   </div>
 
-                  <form onSubmit={sendMessage} className="flex gap-3 border-t border-rose/10 bg-white px-6 py-4">
+                  <form onSubmit={sendMessage} className="flex gap-2 border-t border-rose/10 bg-white px-3 py-3 md:gap-3 md:px-6 md:py-4">
                     <input
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       placeholder={`Écrire à ${activeUser.firstName}…`}
-                      className="flex-1 rounded-xl border border-rose/20 px-4 py-3 text-sm focus:border-rose focus:outline-none focus:ring-2 focus:ring-rose/15"
+                      className="min-w-0 flex-1 rounded-xl border border-rose/20 px-3 py-2.5 text-base focus:border-rose focus:outline-none focus:ring-2 focus:ring-rose/15 md:px-4 md:py-3 md:text-sm"
                     />
                     <button
                       type="submit"
                       disabled={sending || !newMessage.trim()}
-                      className="inline-flex items-center gap-2 rounded-full gradient-pulse px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full gradient-pulse px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50 md:gap-2 md:px-6 md:py-3"
                     >
                       <Send className="h-4 w-4" />
-                      {sending ? "Envoi…" : "Envoyer"}
+                      <span className="hidden sm:inline">{sending ? "Envoi…" : "Envoyer"}</span>
                     </button>
                   </form>
                 </>
               ) : (
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-cream/20 p-12 text-warm-muted">
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-cream/20 p-8 text-warm-muted md:p-12">
                   <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose/10">
                     <Mail className="h-8 w-8 text-rose/50" />
                   </div>

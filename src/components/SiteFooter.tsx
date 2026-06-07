@@ -3,8 +3,8 @@ import BrandBadge from "@/components/BrandBadge";
 
 export default function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-rose/15 bg-white/90 py-10">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 md:flex-row md:items-start md:justify-between">
+    <footer className="mt-auto border-t border-rose/15 bg-white/90 py-8 md:py-10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div>
           <BrandBadge size="sm" showLabel />
           <p className="mt-3 max-w-xs text-sm text-warm-muted">

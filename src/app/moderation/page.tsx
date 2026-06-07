@@ -258,7 +258,7 @@ export default function ModerationPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8">
+      <main className="page-container-wide">
         <StaffPageNav
           backHref={session?.user?.role === "ADMIN" ? "/admin" : "/"}
           backLabel={session?.user?.role === "ADMIN" ? "Retour admin" : "Retour accueil"}
@@ -278,7 +278,7 @@ export default function ModerationPage() {
           </div>
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-4 flex gap-2 overflow-x-auto pb-1 md:mb-6 md:flex-wrap md:overflow-visible md:pb-0">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -287,7 +287,7 @@ export default function ModerationPage() {
                 setTab(t.id);
                 setFilter(t.id === "signalements" || t.id === "commentaires" ? "PENDING" : "ALL");
               }}
-              className={`inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors md:px-5 ${
                 tab === t.id
                   ? "gradient-pulse text-white shadow-sm"
                   : "border border-rose/15 bg-white text-warm-muted hover:bg-cream/80"
@@ -303,13 +303,13 @@ export default function ModerationPage() {
         </div>
 
         {(tab === "commentaires" || tab === "signalements") && (
-          <div className="mb-4 flex flex-wrap gap-2">
+          <div className="mb-4 flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
             {filterOptions.map((f) => (
               <button
                 key={f.id}
                 type="button"
                 onClick={() => setFilter(f.id)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
                   filter === f.id
                     ? "bg-rose/15 text-rose ring-1 ring-rose/20"
                     : "text-warm-muted hover:bg-cream/80 hover:text-warm"
@@ -342,7 +342,34 @@ export default function ModerationPage() {
               </div>
             }
           >
-            <div className="overflow-x-auto">
+            <div className="space-y-3 p-4 md:hidden">
+              {filteredMessages.length === 0 ? (
+                <p className="py-8 text-center text-sm text-warm-muted">Aucun message</p>
+              ) : (
+                filteredMessages.map((m) => (
+                  <article key={`${m.type}-${m.id}`} className="mobile-card">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${m.type === "staff" ? "bg-plum/10 text-plum" : "bg-rose/10 text-rose"}`}>
+                        {m.type === "staff" ? "Équipe" : "Match"}
+                      </span>
+                      <span className="text-[10px] text-warm-muted">
+                        {new Date(m.createdAt).toLocaleDateString("fr-FR")}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold text-warm">{m.from.firstName} → {m.to.firstName}</p>
+                    <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-warm-muted">&ldquo;{m.content}&rdquo;</p>
+                    <button
+                      type="button"
+                      onClick={() => deleteMessage(m.id, m.type)}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-red-200 bg-red-50 py-2 text-sm font-medium text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" /> Supprimer
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[960px] text-left">
                 <thead>
                   <tr className="border-b border-rose/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-warm-muted">
@@ -418,7 +445,36 @@ export default function ModerationPage() {
             title="Commentaires / témoignages"
             subtitle={`${testimonials.length} élément${testimonials.length > 1 ? "s" : ""}`}
           >
-            <div className="overflow-x-auto">
+            <div className="space-y-3 p-4 md:hidden">
+              {testimonials.length === 0 ? (
+                <p className="py-8 text-center text-sm text-warm-muted">Aucun commentaire</p>
+              ) : (
+                testimonials.map((t) => (
+                  <article key={t.id} className="mobile-card">
+                    <p className="text-sm font-semibold text-warm">{t.authorName} → {t.targetName}</p>
+                    <p className="mt-2 line-clamp-4 text-sm italic text-warm-muted">&ldquo;{t.content}&rdquo;</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {t.rating && (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-plum">
+                          <Star className="h-3 w-3 fill-plum" /> {t.rating}/5
+                        </span>
+                      )}
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${statusBadge(t.status)}`}>{t.status}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {t.status === "PENDING" && (
+                        <>
+                          <button type="button" onClick={() => moderateTestimonial(t.id, "APPROVED")} className="flex-1 rounded-full bg-emerald-50 py-2 text-xs font-medium text-emerald-700">Approuver</button>
+                          <button type="button" onClick={() => moderateTestimonial(t.id, "REJECTED")} className="flex-1 rounded-full border py-2 text-xs text-warm-muted">Rejeter</button>
+                        </>
+                      )}
+                      <button type="button" onClick={() => deleteTestimonial(t.id)} className="w-full rounded-full border border-red-200 bg-red-50 py-2 text-xs font-medium text-red-700">Supprimer</button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[960px] text-left">
                 <thead>
                   <tr className="border-b border-rose/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-warm-muted">
@@ -521,7 +577,30 @@ export default function ModerationPage() {
               </div>
             }
           >
-            <div className="overflow-x-auto">
+            <div className="space-y-3 p-4 md:hidden">
+              {profiles.length === 0 ? (
+                <p className="py-8 text-center text-sm text-warm-muted">Aucun profil trouvé</p>
+              ) : (
+                profiles.map((p) => (
+                  <article key={p.id} className={`mobile-card ${p.flagged ? "border-amber-200 bg-amber-50/30" : ""}`}>
+                    <p className="font-semibold text-warm">{p.firstName}</p>
+                    <p className="truncate text-xs text-warm-muted">{p.email}</p>
+                    {p.profile?.bio && <p className="mt-2 line-clamp-2 text-sm italic text-warm-muted">&ldquo;{p.profile.bio}&rdquo;</p>}
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      <span className={p.isActive ? "text-emerald-700" : "text-red-700"}>{p.isActive ? "Actif" : "Désactivé"}</span>
+                      {p.flagged && <span className="text-amber-800">Signalé</span>}
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => profileAction(p.id, "hide_discover")} className="rounded-full border py-2 text-xs">Masquer</button>
+                      <button type="button" onClick={() => profileAction(p.id, p.isActive ? "deactivate" : "reactivate")} className={`rounded-full py-2 text-xs font-medium ${p.isActive ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
+                        {p.isActive ? "Désactiver" : "Réactiver"}
+                      </button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[1000px] text-left">
                 <thead>
                   <tr className="border-b border-rose/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-warm-muted">
@@ -647,7 +726,27 @@ export default function ModerationPage() {
             title="Signalements"
             subtitle={`${reports.length} signalement${reports.length > 1 ? "s" : ""}`}
           >
-            <div className="overflow-x-auto">
+            <div className="space-y-3 p-4 md:hidden">
+              {reports.length === 0 ? (
+                <p className="py-8 text-center text-sm text-warm-muted">Aucun signalement</p>
+              ) : (
+                reports.map((r) => (
+                  <article key={r.id} className="mobile-card">
+                    <p className="font-semibold text-warm">{r.reason}</p>
+                    <p className="mt-1 text-xs text-warm-muted">{r.targetType} · par {r.reporter.firstName}</p>
+                    {r.details && <p className="mt-2 line-clamp-3 text-sm italic text-warm-muted">« {r.details} »</p>}
+                    <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${statusBadge(r.status)}`}>{r.status}</span>
+                    {r.status === "PENDING" && (
+                      <div className="mt-3 flex gap-2">
+                        <button type="button" onClick={() => resolveReport(r.id, "RESOLVED")} className="flex-1 rounded-full bg-emerald-50 py-2 text-xs font-medium text-emerald-700">Résoudre</button>
+                        <button type="button" onClick={() => resolveReport(r.id, "DISMISSED")} className="flex-1 rounded-full border py-2 text-xs text-warm-muted">Rejeter</button>
+                      </div>
+                    )}
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[900px] text-left">
                 <thead>
                   <tr className="border-b border-rose/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-warm-muted">

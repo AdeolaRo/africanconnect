@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Playfair_Display } from "next/font/google";
 import Providers from "@/components/Providers";
 import AppBackground from "@/components/AppBackground";
@@ -35,6 +35,23 @@ export const metadata: Metadata = {
     locale: "fr_FR",
     type: "website",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AfricanConnect",
+  },
+  applicationName: "AfricanConnect",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e8195a" },
+    { media: "(prefers-color-scheme: dark)", color: "#6b1d5c" },
+  ],
 };
 
 export default function RootLayout({
@@ -47,7 +64,7 @@ export default function RootLayout({
       <body className="relative min-h-full flex flex-col text-warm">
         <AppBackground />
         <Providers>
-          <div className="flex min-h-full flex-1 flex-col">
+          <div className="flex min-h-full flex-1 flex-col has-mobile-nav">
             {children}
             <SiteFooter />
           </div>

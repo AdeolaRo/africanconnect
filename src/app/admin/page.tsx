@@ -107,7 +107,7 @@ export default function AdminPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-[90rem] px-4 py-10 sm:px-6 lg:px-8">
+      <main className="page-container-wide">
         <StaffPageNav backHref="/" backLabel="Retour accueil" role={session?.user?.role} />
 
         <div className="mb-8 flex items-center gap-3">
@@ -170,7 +170,63 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="space-y-3 p-4 md:hidden">
+            {filteredUsers.length === 0 ? (
+              <p className="py-8 text-center text-sm text-warm-muted">Aucun utilisateur trouvé.</p>
+            ) : (
+              filteredUsers.map((u) => (
+                <article key={u.id} className="mobile-card">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-plum/20 to-rose/20 font-serif font-bold text-plum">
+                      {u.firstName.charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-warm">{u.firstName}</p>
+                      <p className="truncate text-xs text-warm-muted">{u.email}</p>
+                      {u.profile?.location && (
+                        <p className="mt-1 flex items-center gap-1 text-xs text-warm-muted">
+                          <MapPin className="h-3 w-3" /> {u.profile.location}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                    <span className={`rounded-full px-2 py-1 font-medium ring-1 ring-inset ${roleBadgeClass(u.role)}`}>{u.role}</span>
+                    <span className={`rounded-full px-2 py-1 font-medium ${u.isActive ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                      {u.isActive ? "Actif" : "Désactivé"}
+                    </span>
+                    <span className="rounded-full bg-cream px-2 py-1 text-warm-muted">
+                      {u.profile?.completed ? "Profil complet" : "Incomplet"}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <select
+                      value={u.role}
+                      disabled={updatingId === u.id}
+                      onChange={(e) => updateUser(u.id, { role: e.target.value })}
+                      className={`rounded-xl border-0 px-3 py-2 text-xs font-semibold ring-1 ring-inset ${roleBadgeClass(u.role)}`}
+                    >
+                      {Object.values(ROLES).map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={updatingId === u.id}
+                      onClick={() => updateUser(u.id, { isActive: !u.isActive })}
+                      className={`flex-1 rounded-full px-3 py-2 text-xs font-medium ${
+                        u.isActive ? "border border-red-200 bg-red-50 text-red-700" : "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                      }`}
+                    >
+                      {u.isActive ? "Désactiver" : "Réactiver"}
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[900px] text-left">
               <thead>
                 <tr className="border-b border-rose/10 bg-cream/40 text-xs font-semibold uppercase tracking-wide text-warm-muted">

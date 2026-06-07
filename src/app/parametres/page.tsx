@@ -69,7 +69,7 @@ export default function ParametresPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-2xl px-4 py-10">
+      <main className="page-container max-w-2xl">
         <div className="mb-8 flex items-center gap-3">
           <Settings className="h-7 w-7 text-rose" />
           <div>

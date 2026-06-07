@@ -115,10 +115,10 @@ export default function MonCVPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="px-4 py-10">
-        <div className="mx-auto mb-6 flex max-w-6xl items-center justify-between">
-          <h1 className="font-serif text-2xl font-bold text-warm">Mon profil</h1>
-          <div className="flex gap-3">
+      <main className="page-container">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="font-serif text-xl font-bold text-warm sm:text-2xl">Mon profil</h1>
+          <div className="flex flex-wrap gap-3">
             <Link href="/modifier-profil" className="text-sm text-rose hover:underline">Modifier</Link>
             <Link href="/decouvrir" className="rounded-full bg-warm px-5 py-2 text-sm font-medium text-cream">
               Découvrir

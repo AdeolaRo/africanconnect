@@ -4,7 +4,10 @@ import { useEffect, useState, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
-import { Shield } from "lucide-react";
+import { formatBadgeCount } from "@/components/NotificationBadge";
+import { useMessageUnreadCount } from "@/hooks/useMessageUnreadCount";
+import { notifyMessagesRead } from "@/lib/message-notifications";
+import { Shield, ArrowLeft } from "lucide-react";
 
 interface Message {
   id: string;
@@ -18,6 +21,7 @@ interface Conversation {
   id: string;
   fromUser: { id: string; firstName: string };
   toUser: { id: string; firstName: string };
+  unreadCount?: number;
 }
 
 interface StaffThread {
@@ -51,6 +55,8 @@ function MessagesContent() {
   const [staffThreads, setStaffThreads] = useState<StaffThread[]>([]);
   const [staffMessages, setStaffMessages] = useState<StaffMessage[]>([]);
   const [staffUnread, setStaffUnread] = useState(0);
+  const [matchesUnread, setMatchesUnread] = useState(0);
+  const { refresh: refreshUnreadCounts } = useMessageUnreadCount();
   const [newMessage, setNewMessage] = useState("");
   const [activeUser, setActiveUser] = useState<{ id: string; name: string } | null>(null);
   const [activeStaff, setActiveStaff] = useState<{ id: string; name: string } | null>(null);
@@ -61,15 +67,21 @@ function MessagesContent() {
 
   useEffect(() => {
     if (session) {
-      fetch("/api/messages").then((r) => r.json()).then((d) => Array.isArray(d) && setConversations(d));
+      fetch("/api/messages").then((r) => r.json()).then((d) => {
+        if (Array.isArray(d)) {
+          setConversations(d);
+          setMatchesUnread(d.reduce((n, c) => n + (c.unreadCount ?? 0), 0));
+        }
+      });
       fetch("/api/staff-messages/inbox").then((r) => r.json()).then((d) => {
         if (d.threads) {
           setStaffThreads(d.threads);
           setStaffUnread(d.unreadTotal ?? 0);
         }
       });
+      refreshUnreadCounts();
     }
-  }, [session]);
+  }, [session, refreshUnreadCounts]);
 
   useEffect(() => {
     if (withUserId && session && tab === "matchs") loadMessages(withUserId);
@@ -91,6 +103,14 @@ function MessagesContent() {
         name: conv ? getPartner(conv).firstName : "Contact",
       });
       setActiveStaff(null);
+      fetch("/api/messages").then((r) => r.json()).then((d) => {
+        if (Array.isArray(d)) {
+          setConversations(d);
+          setMatchesUnread(d.reduce((n, c) => n + (c.unreadCount ?? 0), 0));
+        }
+      });
+      refreshUnreadCounts();
+      notifyMessagesRead();
     }
   }
 
@@ -107,6 +127,8 @@ function MessagesContent() {
           setStaffUnread(d.unreadTotal ?? 0);
         }
       });
+      refreshUnreadCounts();
+      notifyMessagesRead();
     }
   }
 
@@ -140,16 +162,34 @@ function MessagesContent() {
   }
 
   const showChat = tab === "matchs" ? activeUser : activeStaff;
+  const mobileChatOpen = !!showChat;
+
+  function closeMobileChat() {
+    setActiveUser(null);
+    setActiveStaff(null);
+    setMessages([]);
+    setStaffMessages([]);
+  }
 
   return (
-    <main className="mx-auto flex max-w-4xl gap-4 px-4 py-10">
-      <aside className="w-64 shrink-0 rounded-2xl border border-rose/15 bg-white/90 p-4 shadow-sm">
+    <main className="page-container max-w-4xl">
+      <div className="flex flex-col gap-4 md:flex-row">
+      <aside
+        className={`w-full shrink-0 rounded-2xl border border-rose/15 bg-white/90 p-4 shadow-sm md:w-64 ${
+          mobileChatOpen ? "hidden md:block" : "block"
+        }`}
+      >
         <div className="flex gap-1 rounded-full bg-cream p-1 text-xs">
           <button
             onClick={() => setTab("matchs")}
-            className={`flex-1 rounded-full py-1.5 ${tab === "matchs" ? "bg-white font-medium text-warm shadow-sm" : "text-warm-muted"}`}
+            className={`relative flex-1 rounded-full py-1.5 ${tab === "matchs" ? "bg-white font-medium text-warm shadow-sm" : "text-warm-muted"}`}
           >
             Matchs
+            {matchesUnread > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose px-1 text-[9px] font-bold text-white">
+                {formatBadgeCount(matchesUnread)}
+              </span>
+            )}
           </button>
           <button
             onClick={() => setTab("equipe")}
@@ -157,8 +197,8 @@ function MessagesContent() {
           >
             Équipe
             {staffUnread > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose text-[9px] text-white">
-                {staffUnread}
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose px-1 text-[9px] font-bold text-white">
+                {formatBadgeCount(staffUnread)}
               </span>
             )}
           </button>
@@ -176,13 +216,18 @@ function MessagesContent() {
                   <li key={conv.id}>
                     <button
                       onClick={() => loadMessages(partner.id)}
-                      className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
+                      className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
                         activeUser?.id === partner.id
                           ? "bg-rose/10 font-medium text-warm"
                           : "text-warm-muted hover:bg-cream"
                       }`}
                     >
-                      {partner.firstName}
+                      <span className="truncate">{partner.firstName}</span>
+                      {(conv.unreadCount ?? 0) > 0 && (
+                        <span className="ml-auto shrink-0 rounded-full bg-rose px-1.5 text-[10px] font-bold text-white">
+                          {formatBadgeCount(conv.unreadCount ?? 0)}
+                        </span>
+                      )}
                     </button>
                   </li>
                 );
@@ -222,20 +267,34 @@ function MessagesContent() {
         )}
       </aside>
 
-      <section className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-rose/15 bg-white/90 shadow-sm">
+      <section
+        className={`chat-mobile-full flex-1 flex-col overflow-hidden rounded-2xl border border-rose/15 bg-white/90 shadow-sm ${
+          mobileChatOpen ? "flex" : "hidden md:flex"
+        }`}
+      >
         {showChat ? (
           <>
-            <div className={`border-b px-6 py-4 ${tab === "equipe" ? "bg-plum/5 border-plum/10" : "bg-rose/5 border-rose/10"}`}>
-              <h2 className="font-semibold text-warm">
+            <div className={`flex items-center gap-3 border-b px-4 py-3 md:px-6 md:py-4 ${tab === "equipe" ? "bg-plum/5 border-plum/10" : "bg-rose/5 border-rose/10"}`}>
+              <button
+                type="button"
+                onClick={closeMobileChat}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-rose/15 text-warm-muted hover:bg-white md:hidden"
+                aria-label="Retour aux conversations"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <div className="min-w-0">
+              <h2 className="truncate font-semibold text-warm">
                 {tab === "equipe" ? activeStaff?.name : activeUser?.name}
               </h2>
-              <p className="text-xs text-warm-muted">
+              <p className="truncate text-xs text-warm-muted">
                 {tab === "equipe"
-                  ? "Message de l'équipe AfricanConnect — vous pouvez répondre"
-                  : "Échange après match mutuel — gratuit"}
+                  ? "Message de l'équipe — vous pouvez répondre"
+                  : "Échange après match mutuel"}
               </p>
+              </div>
             </div>
-            <div className="flex-1 space-y-3 overflow-y-auto p-6" style={{ minHeight: 300 }}>
+            <div className="flex-1 space-y-3 overflow-y-auto p-4 md:p-6" style={{ minHeight: 200 }}>
               {tab === "matchs" &&
                 messages.map((m) => (
                   <div
@@ -268,25 +327,26 @@ function MessagesContent() {
                   </div>
                 ))}
             </div>
-            <form onSubmit={sendMessage} className="flex gap-2 border-t border-rose/10 p-4">
+            <form onSubmit={sendMessage} className="flex gap-2 border-t border-rose/10 p-3 md:p-4">
               <input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Votre message..."
-                className="flex-1 rounded-xl border border-rose/20 px-4 py-2.5 focus:border-rose focus:outline-none"
+                className="min-w-0 flex-1 rounded-xl border border-rose/20 px-3 py-2.5 text-base focus:border-rose focus:outline-none md:px-4"
               />
-              <button type="submit" className="rounded-full gradient-pulse px-5 py-2.5 font-medium text-white">
+              <button type="submit" className="shrink-0 rounded-full gradient-pulse px-4 py-2.5 text-sm font-medium text-white md:px-5">
                 Envoyer
               </button>
             </form>
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-10 text-warm-muted">
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-warm-muted md:p-10">
             <span className="text-4xl">💬</span>
-            <p>Sélectionnez une conversation</p>
+            <p className="text-center text-sm">Sélectionnez une conversation</p>
           </div>
         )}
       </section>
+      </div>
     </main>
   );
 }

@@ -106,7 +106,7 @@ export default function AdminConditionsPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-4xl px-4 py-10">
+      <main className="page-container max-w-4xl">
         <StaffPageNav backHref="/admin" backLabel="Retour admin" role={session?.user?.role} />
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

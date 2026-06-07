@@ -64,7 +64,7 @@ export default function OnboardingPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-xl px-4 py-10">
+      <main className="page-container max-w-xl">
         <div className="mb-8">
           <div className="flex justify-between text-sm text-warm-muted">
             <span>Étape {stepIndex + 1} / {steps.length}</span>

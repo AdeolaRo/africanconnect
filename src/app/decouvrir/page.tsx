@@ -140,7 +140,7 @@ export default function DecouvrirPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-6xl px-4 py-10">
+      <main className="page-container">
         {staffMode && staffHomePath(role) && (
           <StaffPageNav
             backHref={staffHomePath(role)!}
@@ -160,7 +160,7 @@ export default function DecouvrirPage() {
             <Sparkles className="h-4 w-4" />
             Étape 1 — Découverte sans photo
           </span>
-          <h1 className="mt-4 font-serif text-3xl font-bold text-warm md:text-4xl">
+          <h1 className="mt-4 font-serif text-2xl font-bold text-warm sm:text-3xl md:text-4xl">
             Profils compatibles
           </h1>
           <div className="mt-5 flex justify-center">
@@ -169,16 +169,16 @@ export default function DecouvrirPage() {
         </div>
 
         {!loading && profiles.length > 0 && (
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 rounded-2xl border border-rose/15 bg-white/80 px-5 py-4 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-sm text-warm">
-              <Users className="h-4 w-4 text-rose" />
+          <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-rose/15 bg-white/80 px-4 py-4 backdrop-blur-sm sm:px-5">
+            <div className="flex items-center justify-center gap-2 text-sm text-warm">
+              <Users className="h-4 w-4 shrink-0 text-rose" />
               <span>
                 <strong>{filtered.length}</strong> profil{filtered.length > 1 ? "s" : ""} affiché{filtered.length > 1 ? "s" : ""}
               </span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <SlidersHorizontal className="h-4 w-4 text-warm-muted" />
+            <div className="filter-stack">
+              <SlidersHorizontal className="hidden h-4 w-4 text-warm-muted sm:block" />
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as SortOption)}

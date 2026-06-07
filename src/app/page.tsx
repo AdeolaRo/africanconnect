@@ -19,7 +19,7 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-r from-plum/90 via-wine/80 to-rose/60" />
           </div>
 
-          <div className="relative mx-auto max-w-6xl px-4 py-24 md:py-32">
+          <div className="relative mx-auto max-w-6xl px-4 py-16 sm:py-20 md:py-32">
             <div className="max-w-2xl">
               <div className="flex flex-wrap items-center gap-3">
                 <BrandBadge size="md" />
@@ -27,7 +27,7 @@ export default function HomePage() {
                   100% gratuit — Toutes orientations respectées
                 </span>
               </div>
-              <h1 className="mt-6 font-serif text-4xl font-bold leading-tight text-white md:text-5xl lg:text-6xl">
+              <h1 className="mt-6 font-serif text-3xl font-bold leading-tight text-white sm:text-4xl md:text-5xl lg:text-6xl">
                 La rencontre qui vous correspond, vraiment
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-white/90">

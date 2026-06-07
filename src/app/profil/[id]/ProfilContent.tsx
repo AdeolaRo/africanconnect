@@ -181,7 +181,7 @@ export default function ProfilContent() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="px-4 py-10">
+      <main className="page-container">
         {fromDiscover && nav && (
           <ProfileNavBar
             currentId={userId}

@@ -55,7 +55,7 @@ export default function VisitesPage() {
   return (
     <>
       <Header user={session?.user} />
-      <main className="mx-auto max-w-2xl px-4 py-10">
+      <main className="page-container max-w-2xl">
         <div className="mb-8">
           <h1 className="flex items-center gap-2 font-serif text-2xl font-bold text-warm">
             <Eye className="h-6 w-6 text-rose" />

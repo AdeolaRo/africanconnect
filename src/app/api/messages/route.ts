@@ -23,7 +23,24 @@ export async function GET(req: Request) {
         toUser: { select: { id: true, firstName: true } },
       },
     });
-    return NextResponse.json(interests);
+
+    const unreadBySender = await prisma.message.groupBy({
+      by: ["fromUserId"],
+      where: { toUserId: session.user.id, read: false },
+      _count: { id: true },
+    });
+    const unreadMap = new Map(unreadBySender.map((u) => [u.fromUserId, u._count.id]));
+
+    const conversations = interests.map((interest) => {
+      const partnerId =
+        interest.fromUserId === session.user.id ? interest.toUserId : interest.fromUserId;
+      return {
+        ...interest,
+        unreadCount: unreadMap.get(partnerId) ?? 0,
+      };
+    });
+
+    return NextResponse.json(conversations);
   }
 
   const allowed = await prisma.interest.findFirst({
@@ -51,6 +68,11 @@ export async function GET(req: Request) {
     include: {
       fromUser: { select: { firstName: true } },
     },
+  });
+
+  await prisma.message.updateMany({
+    where: { fromUserId: withUserId, toUserId: session.user.id, read: false },
+    data: { read: true },
   });
 
   return NextResponse.json(messages);

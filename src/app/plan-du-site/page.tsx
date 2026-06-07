@@ -14,7 +14,7 @@ export default function PlanDuSitePage() {
   return (
     <>
       <Header />
-      <main className="mx-auto max-w-4xl flex-1 px-4 py-10">
+      <main className="page-container max-w-4xl flex-1">
         <div className="mb-6 flex items-center gap-3">
           <Map className="h-6 w-6 text-rose" />
           <h1 className="font-serif text-2xl font-bold text-warm">Plan du site</h1>
