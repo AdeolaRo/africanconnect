@@ -71,19 +71,19 @@ export default function HomeLanding() {
               icon={Sparkles}
               title="Profil auto-généré"
               description="Un questionnaire guidé crée un profil complet. Votre ville, vos valeurs, vos attentes — tout est clair dès le départ."
-              image={images.friends}
+              image={images.profile}
             />
             <FeatureCard
               icon={Users}
               title="Matching intelligent"
               description="Compatibilité en % selon vos critères et orientations. Vous ne contactez que les profils qui vous correspondent."
-              image={images.connection}
+              image={images.matching}
             />
             <FeatureCard
               icon={Shield}
               title="Parcours en 3 étapes"
               description="1) Profil sans photo  2) Intérêt mutuel  3) Photo révélée + messages. Pas de chat ouvert à tous."
-              image={images.couple}
+              image={images.journey}
             />
           </div>
         </section>

@@ -42,7 +42,7 @@ export default function ConnexionPage() {
       <Header />
       <main className="flex min-h-[calc(100vh-72px)]">
         <div className="relative hidden w-1/2 lg:block">
-          <Image src={images.connection} alt="Connexion" fill className="object-cover" sizes="50vw" />
+          <Image src={images.matching} alt="Connexion" fill className="object-cover" sizes="50vw" />
           <div className="absolute inset-0 bg-gradient-to-t from-warm/60 to-transparent" />
         </div>
 

@@ -1,4 +1,4 @@
-const CACHE = "africanconnect-v1";
+const CACHE = "africanconnect-v2";
 const PRECACHE = ["/", "/decouvrir", "/connexion", "/icon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -21,6 +21,11 @@ self.addEventListener("fetch", (event) => {
 
   if (request.method !== "GET") return;
   if (url.pathname.startsWith("/api/")) return;
+  // Ne pas mettre en cache les images (URLs renommées / optimisées Next.js)
+  if (url.pathname.startsWith("/_next/image") || url.pathname.startsWith("/images/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   event.respondWith(
     fetch(request)

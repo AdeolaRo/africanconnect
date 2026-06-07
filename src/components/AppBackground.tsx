@@ -3,11 +3,11 @@ import { images } from "@/lib/images";
 
 const tiles = [
   { src: images.hero, top: "5%", left: "3%", size: 180, rotate: -8 },
-  { src: images.couple, top: "12%", right: "5%", size: 160, rotate: 6 },
-  { src: images.friends, top: "45%", left: "1%", size: 140, rotate: 4 },
-  { src: images.connection, top: "55%", right: "2%", size: 170, rotate: -5 },
+  { src: images.journey, top: "12%", right: "5%", size: 160, rotate: 6 },
+  { src: images.profile, top: "45%", left: "1%", size: 140, rotate: 4 },
+  { src: images.matching, top: "55%", right: "2%", size: 170, rotate: -5 },
   { src: images.signup, bottom: "8%", left: "6%", size: 150, rotate: -3 },
-  { src: images.couple, bottom: "12%", right: "4%", size: 130, rotate: 8 },
+  { src: images.journey, bottom: "12%", right: "4%", size: 130, rotate: 8 },
 ];
 
 export default function AppBackground() {

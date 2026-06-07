@@ -67,6 +67,7 @@ else
 fi
 
 log "5/6 — npm run build"
+rm -rf .next/cache
 npm run build
 
 log "6/6 — pm2 restart $PM2_NAME"
